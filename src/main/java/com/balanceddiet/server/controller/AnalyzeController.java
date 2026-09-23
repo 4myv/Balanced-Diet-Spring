@@ -1,8 +1,8 @@
-package com.balnceddiet.server.controller;
+package com.balanceddiet.server.controller;
 
-import com.balnceddiet.server.dto.AnalyzeRequest;
-import com.balnceddiet.server.dto.AnalyzeResponse;
-import com.balnceddiet.server.service.GeminiService;
+import com.balanceddiet.server.dto.AnalyzeRequest;
+import com.balanceddiet.server.dto.AnalyzeResponse;
+import com.balanceddiet.server.service.GeminiService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

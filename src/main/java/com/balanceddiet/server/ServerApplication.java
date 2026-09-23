@@ -1,4 +1,4 @@
-package com.balnceddiet.server;
+package com.balanceddiet.server;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

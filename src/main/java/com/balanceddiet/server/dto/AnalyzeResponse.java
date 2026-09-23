@@ -1,4 +1,4 @@
-package com.balnceddiet.server.dto;
+package com.balanceddiet.server.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

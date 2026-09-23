@@ -1,7 +1,7 @@
-package com.balnceddiet.server.service;
+package com.balanceddiet.server.service;
 
-import com.balnceddiet.server.dto.AnalyzeRequest;
-import com.balnceddiet.server.dto.AnalyzeResponse;
+import com.balanceddiet.server.dto.AnalyzeRequest;
+import com.balanceddiet.server.dto.AnalyzeResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
