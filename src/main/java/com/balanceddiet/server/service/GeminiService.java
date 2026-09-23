@@ -109,6 +109,10 @@ public class GeminiService {
                 .body(Map.class);
                 // 받은 답을 Map으로 바꿔 달라 (역직렬화)
 
+        if (response == null) {
+            throw new RuntimeException("AI 응답이 비어 있습니다");
+        }
+
         // 4. 응답에서 텍스트만 꺼내서 DTO로 변환
         // response 구조
         // response : (Object)
