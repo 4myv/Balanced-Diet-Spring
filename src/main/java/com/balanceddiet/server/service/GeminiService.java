@@ -17,8 +17,8 @@ public class GeminiService {
 
     private static final String MEAL_PROMPT =   // 상수 선언
             "너는 영양 분석가야. 사용자가 보낸 음식 사진이나 설명을 보고 예상 영양 성분을 추정해. " +
-            "다른 설명 없이 아래 형식의 JSON 객체 하나만 출력해: " +
-            "{\"foodName\": \"짧은 요약 이름\", \"calories\": 정수, \"carb\": 정수, \"protein\": 정수, \"fat\": 정수}";
+                    "다른 설명 없이 아래 형식의 JSON 객체 하나만 출력해: " +
+                    "{\"foodName\": \"짧은 요약 이름\", \"calories\": 정수, \"carb\": 정수, \"protein\": 정수, \"fat\": 정수}";
     // \" -> JSON 예시 속 따옴표를 넣기 위한 이스케이프
 
     // 서비스 클래스에는 "요청마다 달라지는 값"을 필드로 두지 않는다
@@ -72,6 +72,22 @@ public class GeminiService {
             // ex) { "text" : "김치찌개 1인분, 공기밥 한 그릇" }
         }
 
+        String json = callGemini(MEAL_PROMPT, parts);
+        // try/catch문 -- 엑셀의 IfError 함수 "실패하면 이렇게 해라"
+        try {
+            return objectMapper.readValue(json, AnalyzeResponse.class);
+            // readValue -> 앞의 값을 뒤의 값으로 바꿈
+            // JSON 글자를 AnalyzeResponse 객체로 바꿔서 리턴함
+        } catch (Exception e) {
+            // try가 실패할 시
+            throw new RuntimeException("AI 응답을 해석하지 못했습니다: " + json, e);
+            // AI 응답을 해석하지 못했습니다 : AI 응답
+        }
+    }
+
+    // Gemini에게 보내고, 응답 텍스트만 돌려주는 공통 메서드
+    private String callGemini(String systemPrompt, List<Map<String, Object>> parts) {
+
         // 2. 요청 본문 만들기
         // Gemini에게 보내는 양식 { systemInstruction, contents, generationConfig }
         Map<String, Object> body = Map.of(
@@ -107,7 +123,7 @@ public class GeminiService {
                 .retrieve()
                 // 요청을 보내고 응답을 받음
                 .body(Map.class);
-                // 받은 답을 Map으로 바꿔 달라 (역직렬화)
+        // 받은 답을 Map으로 바꿔 달라 (역직렬화)
 
         if (response == null) {
             throw new RuntimeException("AI 응답이 비어 있습니다");
@@ -124,23 +140,13 @@ public class GeminiService {
         String text = extractText(response);
         // extractText() 메서드에 파라미터 response를 넣어 호출 -> text 변수에 저장
 
-        String cleaned = text.replace("```json","").replace("```", "").trim();
+        String cleaned = text.replace("```json", "").replace("```", "").trim();
         // replace( target, replacement ) -> target: 찾을값, replacement: 바꿀값
         // trim() -> 앞뒤 공백 지우기
-        // Gemini가 ```json ... ``` 으로 감싸서 주면, 벗겨내서 cleaned 변수에 저장
+        // Gemini가 ```json ... ``` 으로 감싸서 주면, 벗겨내서 cleaned 변수에 저장a
 
-        // try/catch문 -- 엑셀의 IfError 함수 "실패하면 이렇게 해라"
-        try {
-            return objectMapper.readValue(cleaned, AnalyzeResponse.class);
-            // readValue -> 앞의 값을 뒤의 값으로 바꿈
-            // JSON 글자를 AnalyzeResponse 객체로 바꿔서 리턴함
-        } catch (Exception e) {
-            // try가 실패할 시
-            throw new RuntimeException("AI 응답을 해석하지 못했습니다: " + cleaned, e);
-            // AI 응답을 해석하지 못했습니다 : AI 응답
-        }
+        return cleaned;
     }
-
     private String extractText(Map<String, Object> response) {
         // Map<String, Object> 로 선언 -> "이름표"를 통해 Object를 호출
         // Map에서 get("이름표")로 꺼낼 때 -> 값이 Object라서 캐스팅 필요
