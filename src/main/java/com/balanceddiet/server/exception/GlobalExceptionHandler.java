@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j  // log를 사용하여 콘솔에 기록을 남기기 위한 어노테이션
 @RestControllerAdvice   // 모든 Controller를 지켜보다가, 에러가 날아오면 대신 받아줌
@@ -20,7 +21,7 @@ public class GlobalExceptionHandler {
 
     // 2. Gemini 서버에 문제가 있을 때 -> 503
     @ExceptionHandler(HttpServerErrorException.class)
-    // 겪고 있는 오류를 받는다. Gemini가 5xx를 보내면
+    // Gemini 서버 오류(5xx)를 받는다
     // RestClient가 HttpServerErrorException을 던지는데, 이를 친절한 안내로 바꿈
     public ResponseEntity<ErrorResponse> handleGeminiServerError(HttpServerErrorException e) {
         log.warn("Gemini 서버 오류: {}", e.getStatusCode());
@@ -30,11 +31,19 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(503).body(new ErrorResponse("AI가 지금 바빠요. 잠시 후 다시 시도해주세요."));
     }
-    
-    // 3. 그 외 모든 에러 -> 500
+
+    // 없는 주소나 파일을 요청했을 때 -> 404
+    @ExceptionHandler(NoResourceFoundException.class)
+    // Not Found 에러가 왔을 때 메서드 실행
+    public ResponseEntity<ErrorResponse> handleNotFound(NoResourceFoundException e) {
+        // 404 상태 코드를 알려주고, 안내 메시지 보내기
+        return ResponseEntity.status(404).body(new ErrorResponse("요청한 주소를 찾을 수 없어요."));
+    }
+
+    // 4. 그 외 모든 에러 -> 500
     @ExceptionHandler(Exception.class)
     // Exception은 모든 에러의 부모이다
-    // 위 1, 2에 해당하지 않는 에러는 모두 여기로 받아 처리한다
+    // 위 1~3에 해당하지 않는 에러는 모두 여기로 받아 처리한다
     public ResponseEntity<ErrorResponse> handleEtc(Exception e) {
         log.error("처리 중 에러 발생", e);
         // 콘솔에 에러 수준으로 기록, 뒤에 e를 넣어 에러 내용 전체가 콘솔에 찍힌다
