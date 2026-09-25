@@ -2,8 +2,7 @@ package com.balanceddiet.server.service;
 
 import com.balanceddiet.server.domain.Profile;
 import com.balanceddiet.server.domain.ProfileRepository;
-import com.balanceddiet.server.dto.GoalSaveRequest;
-import com.balanceddiet.server.dto.ProfileRequest;
+import com.balanceddiet.server.dto.*;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,10 +11,12 @@ import java.util.List;
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
+    private final GeminiService geminiService;
 
     // 생성자
-    public ProfileService(ProfileRepository profileRepository) {
+    public ProfileService(ProfileRepository profileRepository, GeminiService geminiService) {
         this.profileRepository = profileRepository;
+        this.geminiService = geminiService;
     }
 
     // 저장된 Profile 꺼내기 - 없으면 null
@@ -51,6 +52,22 @@ public class ProfileService {
 
         // 4. 저장하고 돌려주기
         return profileRepository.save(profile);
+    }
+
+    // 저장된 신체 정보로 목표 계산 (저장은 안 함)
+    public GoalResponse recommendGoal(GoalCalculateRequest request) {
+        // 1. Profile을 꺼내고 값 검사하기
+        Profile profile = find();
+        if (profile == null) {
+            throw new IllegalArgumentException("신체 정보를 먼저 입력해주세요");
+        }
+
+        // 2. 목표 계산 요청 만들기
+        GoalRequest goalRequest = new GoalRequest(profile.getHeight(), profile.getWeight(), profile.getAge(), profile.getGender(), profile.getActivity(), request.getGoalType(), request.getCustomGoalText());
+
+        // 3. GeminiService에게 계산 요청하기
+        return geminiService.calculateGoal(goalRequest);
+
     }
 
     // 목표 저장 - 신체 정보가 먼저 있어야 함

@@ -1,10 +1,12 @@
 package com.balanceddiet.server.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class GoalRequest {
     private double height;      // 키
     private double weight;      // 몸무게
