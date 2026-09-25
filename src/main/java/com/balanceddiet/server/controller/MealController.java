@@ -3,6 +3,7 @@ package com.balanceddiet.server.controller;
 import com.balanceddiet.server.domain.Meal;
 import com.balanceddiet.server.dto.MealRequest;
 import com.balanceddiet.server.dto.MealResponse;
+import com.balanceddiet.server.dto.WeeklyAverageResponse;
 import com.balanceddiet.server.service.MealService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +12,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-// 식단 기록 API - 저장, 일별 조회, 삭제
+// 식단 기록 API - 저장, 일별 조회, 삭제, 주간 평균
 @RestController
 @RequestMapping("/api/meals")
 public class MealController {
@@ -55,5 +56,12 @@ public class MealController {
         mealService.delete(id);
         // 있는 id면 삭제,
         // 없는 아이디면 Service가 IllegalArgumentException을 던짐 -> 400
+    }
+
+    // GET /api/meals/weekly-average
+    // 최근 7일 중 기록한 날 기준 하루 평균
+    @GetMapping("/weekly-average")
+    public WeeklyAverageResponse getWeeklyAverage() {
+        return mealService.getWeeklyAverage();
     }
 }

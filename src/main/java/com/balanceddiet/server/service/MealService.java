@@ -3,11 +3,14 @@ package com.balanceddiet.server.service;
 import com.balanceddiet.server.domain.Meal;
 import com.balanceddiet.server.domain.MealRepository;
 import com.balanceddiet.server.dto.MealRequest;
+import com.balanceddiet.server.dto.WeeklyAverageResponse;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class MealService {
@@ -56,5 +59,44 @@ public class MealService {
             // Id가 존재하지 않은 경우
             throw new IllegalArgumentException("존재하지 않는 기록이에요");
         }
+    }
+
+    // 최근 7일 중 기록한 날 기준 하루 평균
+    public WeeklyAverageResponse getWeeklyAverage() {
+        // 1. 기간 정하기
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalDate start = today.minusDays(6);   // 오늘을 포함한 7일이라 -6일
+
+        // 2. 기록 꺼내기
+        List<Meal> meals = mealRepository.findByDateBetween(start, today);
+
+        // 3. 칼로리·탄·단·지 합계와 기록한 날 세기
+        int totalCalories = 0;
+        int totalCarb = 0;
+        int totalProtein = 0;
+        int totalFat = 0;
+        Set<LocalDate> recordedDays = new HashSet<>();
+        for (Meal meal : meals) {
+            recordedDays.add(meal.getDate());
+            totalCalories += meal.getCalories();
+            totalCarb += meal.getCarb();
+            totalProtein += meal.getProtein();
+            totalFat += meal.getFat();
+        }
+        int days = recordedDays.size();
+
+        // 4. 기록이 하나도 없으면
+        if (days == 0) {
+            return new WeeklyAverageResponse(0, 0, 0, 0, 0);
+        }
+
+        // 5. 평균 구하기
+        // int끼리 나누면 소수점을 버리기 때문에, double로 바꿔 나눈 뒤 반올림하고 int로 형변환
+        int avgCalories = (int) Math.round((double) totalCalories / days);
+        int avgCarb = (int) Math.round((double) totalCarb / days);
+        int avgProtein = (int) Math.round((double) totalProtein / days);
+        int avgFat = (int) Math.round((double) totalFat / days);
+
+        return new WeeklyAverageResponse(days, avgCalories, avgCarb, avgProtein, avgFat);
     }
 }
