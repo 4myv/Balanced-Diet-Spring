@@ -16,11 +16,11 @@ Run -> Edit Configurations -> ServerApplication -> Environment variables
 
 **설정값 - @Value와 환경변수**
 
-@Value("${gemini.api-key}")
-
-&#x20;  → application.properties의 gemini.api-key=${GEMINI\_API\_KEY}
-
-&#x20;     → 환경변수 GEMINI\_API\_KEY
+```properties
+gemini.api-key=${GEMINI_API_KEY}
+# "환경변수에서 GEMINI_API_KEY 이름의 값을 가져와라"
+gemini.model=gemini-3.5-flash-lite
+```
 
 * @Value -> 빈 말고 설정 파일에서 값을 가져오라고 함
 * 모델 이름과 같이 바뀔 수 있는 값은 설정으로 빼두면 코드 수정 없이 교체 가능
@@ -41,20 +41,15 @@ Run -> Edit Configurations -> ServerApplication -> Environment variables
 
 **RestClient - 우리 서버가 다른 서버에 요청**
 
+```java
 restClient.post()
-
-&#x20;   .uri(...)                         			// 주소
-
-&#x20;   .header("x-goog-api-key", apiKey) 	// 누가 보냈는지
-
-&#x20;   .contentType(APPLICATION\_JSON)    	// 내용물 종류
-
-&#x20;   .body(body)                       		// 보낼 내용 (Map → JSON 자동 변환)
-
-&#x20;   .retrieve()                       			// 전송 + 응답 받기 (여기서 실제 통신)
-
-&#x20;   .body(Map.class);                 		// 받은 JSON → Map
-
+    .uri(...)                           // 주소
+    .header("x-goog-api-key", apiKey)   // 누가 보냈는지
+    .contentType(APPLICATION_JSON)      // 내용물 종류
+    .body(body)                         // 보낼 내용 (Map → JSON 자동 변환)
+    .retrieve()                         // 전송 + 응답 받기 (여기서 실제 통신)
+    .body(Map.class);                   // 받은 JSON → Map
+```
 
 
 **ObjectMapper** **- JSON 변환기**
@@ -76,10 +71,10 @@ restClient.post()
 
 **어노테이션**
 
-* @RestControllerAdvice : 모든 Controller의 예외 처리(에러)를 한 곳에서 받음
-* @ExceptionHandler : 괄호 안 종류의 에러가 오면 이 메서드가 받음
-* @Slf4j : log를 사용할 수 있게 해줌
-* @Autowired : 의존성을 주입해줌 (생성자가 하나뿐이면 생략하는게 일반적)
+* **@RestControllerAdvice** : 모든 Controller의 예외 처리(에러)를 한 곳에서 받음
+* **@ExceptionHandler** : 괄호 안 종류의 에러가 오면 이 메서드가 받음
+* **@Slf4j** : log를 사용할 수 있게 해줌
+* **@Autowired** : 의존성을 주입해줌 (생성자가 하나뿐이면 생략하는게 일반적)
 
 
 

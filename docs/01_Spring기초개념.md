@@ -5,71 +5,53 @@
 
 
 **직접 해보기 : Hello API**
-
+```java
 @RestController
-
 // HTTP 요청을 받는 담당, "return값을 그대로 응답 본문으로 보낸다"고 알려주는 역할을 함
-
 public class HelloController {
-
-
-
-&#x20;   	@GetMapping("/api/hello")   // 이 주소로 GET 요청이 오면 이 메서드를 실행
-
-&#x20;	public String hello() {
-
-&#x20;       	return "Hello, World!";
-
-&#x20;   	}
-
+    
+   	@GetMapping("/api/hello")   // 이 주소로 GET 요청이 오면 이 메서드를 실행
+	public String hello() {
+       	return "Hello, World!";
+   	}
 }
+```
 
 
 
-**어노테이션** 
+**어노테이션**
 
-* **@Controller** : 리턴값을 "화면 이름"으로 해석 -> HTML 페이지를 찾음
-* **@RestController** : 리턴값을 "응답 데이터"로 해석 -> JSON으로 변환
+* **@Controller** **:** 리턴값을 "화면 이름"으로 해석 -> HTML 페이지를 찾음
+* **@RestController :** 리턴값을 "응답 데이터"로 해석 -> JSON으로 변환
 * **@GetMapping, @PostMapping, @DeleteMapping, @PutMapping** : 괄호 안 주소로 각 요청을 받았을 때 메서드를 실행
 * **@RequestBody :** HTTP 요청 본문의 JSON을 Java 객체로 변환해서 받음
 * **@RequestParam :** 주소의 쿼리 파라미터를 받음
 * **@PathVariable :** 주소의 일부를 받음
+* **@AllArgsConstructor :** 모든 필드를 파라미터로 받는 생성자
+* **@NoArgsConstructor :** 기본 생성자 (파라미터 없음)
 
 
 
 **직접 해보기 : JSON 응답**
-
+```java
 @GetMapping("/api/test")    // 이 주소로 GET 요청이 오면 이 메서드를 실행
 
 public Map<String, Object> test() {
+  // return type -> Map<String, Object> (String - JSON의 키가 될 부분, Object - 값(출력 값의 부모 클래스))
 
-// return type -> Map<String, Object> (String - JSON의 키가 될 부분, Object - 값(출력 값의 부모 클래스))
+  Map<String, Object> result = new HashMap<>();	// Map 타입의 객체 선언
+  // Map은 인터페이스라서 new Map()과 같이 사용할 수 없음
+  // 그래서 new HashMap<>()을 사용
+  // 출력했을 때, 순서가 바뀌는 이유 -> HashMap은 키의 해시값으로 위치를 정하기 때문
+  // Object로 저장했기 때문에 꺼낼 때 타입캐스팅 필요
 
-&#x09;
+  result.put("message", "정상 동작");
+  result.put("calories", 450);
+  // result 객체 안에 출력할 값을 저장해둠
 
-&#x09;Map<String, Object> result = new HashMap<>();	// Map 타입의 객체 선언
-
-&#x20;       // Map은 인터페이스라서 new Map()과 같이 사용할 수 없음
-
-&#x20;       // 그래서 new HashMap<>()을 사용
-
-&#x09;// 출력했을 때, 순서가 바뀌는 이유 -> HashMap은 키의 해시값으로 위치를 정하기 때문
-
-&#x09;// Object로 저장했기 때문에 꺼낼 때 타입캐스팅 필요
-
-
-
-&#x20;       result.put("message", "정상 동작");
-
-&#x20;       result.put("calories", 450);
-
-&#x20;       // result 객체 안에 출력할 값을 저장해둠
-
-
-
-&#x20;       return result;  // result 객체를 리턴
-
-&#x20;   }
+  return result;  // result 객체를 리턴
+   }
+```
 
 
 
@@ -133,25 +115,20 @@ public Map<String, Object> test() {
 * 역직렬화 : **JSON** 문자열 ->  **Java** 객체 (요청 받을 때) -- **기본 생성자 필요**
 * **getter**를 기준으로 동작
 
-&#x09;public class TestResponse {
-
-&#x09;	private String message;   // getter 없음
-
-&#x09;}
-
-&#x09;// 결과: {} ← 빈 JSON
-
-\-------------------------------------------------------------- getter 유/무
-
-&#x09;@Getter                       // Lombok이 getter 생성
-
-&#x09;public class TestResponse {
-
-&#x20;   		private String message;
-
-&#x09;}
-
-&#x09;// 결과: {"message":"..."}
+```java
+public class TestResponse {
+	private String message;   // getter 없음
+}
+// 결과: {} ← 빈 JSON
+```
+~getter 유/무~
+```java
+@Getter                       // Lombok이 getter 생성
+public class TestResponse {
+   		private String message;
+}
+// 결과: {"message":"..."}
+```
 
 
 
