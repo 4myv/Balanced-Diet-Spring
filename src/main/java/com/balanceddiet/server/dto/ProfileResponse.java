@@ -5,20 +5,20 @@ import lombok.Getter;
 
 @Getter
 public class ProfileResponse {
-    private Long id;
+    private final Long id;
 
-    private double height;
-    private double weight;
-    private int age;
-    private String gender;
-    private String activity;
+    private final double height;
+    private final double weight;
+    private final int age;
+    private final String gender;
+    private final String activity;
 
-    private String goalType;
-    private String customGoalText;
-    private int goalCalories;
-    private int goalCarb;
-    private int goalProtein;
-    private int goalFat;
+    private final String goalType;
+    private final String customGoalText;
+    private final int goalCalories;
+    private final int goalCarb;
+    private final int goalProtein;
+    private final int goalFat;
 
     public ProfileResponse(Profile profile) {
         this.id = profile.getId();
