@@ -10,5 +10,5 @@ import lombok.Getter;
 // 여기서는 new ErrorResponse("메시지")로 만들기 위해 붙임
 
 public class ErrorResponse {
-    private String meassage;
+    private String message;
 }
