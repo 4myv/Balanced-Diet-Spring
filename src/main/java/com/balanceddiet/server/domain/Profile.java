@@ -11,22 +11,22 @@ public class Profile {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long id;    // 기본 키
 
-    private double height;
-    private double weight;
-    private int age;
+    private double height;      // 키
+    private double weight;      // 몸무게
+    private int age;            // 나이
     @Column(nullable = false)
-    private String gender;
+    private String gender;      // 성별
     @Column(nullable = false)
-    private String activity;
+    private String activity;    // 활동량
 
-    private String goalType;
-    private String customGoalText;
-    private int goalCalories;
-    private int goalCarb;
-    private int goalProtein;
-    private int goalFat;
+    private String goalType;        // 목표 타입
+    private String customGoalText;  // '기타' 목표 텍스트
+    private int goalCalories;       // 목표 칼로리
+    private int goalCarb;           // 목표 탄수화물
+    private int goalProtein;        // 목표 단백질
+    private int goalFat;            // 목표 지방
 
     // 신체 정보 생성자
     public Profile(double height, double weight, int age, String gender, String activity) {
