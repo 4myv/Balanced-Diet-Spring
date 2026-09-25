@@ -175,10 +175,10 @@ public class GeminiService {
                 // systemInstruction -> AI에게 주는 역할과 규칙
                 // (너는 영양 분석가다, JSON으로만 답해라)
                 "systemInstruction", Map.of("parts", List.of(
-                        Map.of("text", MEAL_PROMPT)
+                        Map.of("text", systemPrompt)
                 )),
                 // { "systemInstruction" : { "parts" :
-                // List [ { "text" : MEAL_PROMPT } ] }
+                // List [ { "text" : systemPrompt } ] }
 
                 // contents -> 실제 질문
                 // (이 사진/텍스트를 분석해줘)
@@ -200,7 +200,7 @@ public class GeminiService {
                 .contentType(MediaType.APPLICATION_JSON)
                 // 보내는 타입이 JSON이라고 알려줌
                 .body(body)
-                // body를 실어 보냄 (직렬화를 통해 Map을 JSON으로 보냄_
+                // body를 실어 보냄 (직렬화를 통해 Map을 JSON으로 보냄)
                 .retrieve()
                 // 요청을 보내고 응답을 받음
                 .body(Map.class);
@@ -210,9 +210,9 @@ public class GeminiService {
             throw new RuntimeException("AI 응답이 비어 있습니다");
         }
 
-        // 4. 응답에서 텍스트만 꺼내서 DTO로 변환
+        // 4. 응답에서 텍스트만 꺼내기
         // response 구조
-        // response : (Object)
+        // response : (Map)
         // "candidates" [       -- candidates란? Gemini가 응답할 때 붙이는 이름표
         // List [ { "content" : { "parts" :
         // List [ { "text" : "{\"foodName\":\"김치찌개\",...}" } ] } } ] ]
@@ -224,7 +224,7 @@ public class GeminiService {
         String cleaned = text.replace("```json", "").replace("```", "").trim();
         // replace( target, replacement ) -> target: 찾을값, replacement: 바꿀값
         // trim() -> 앞뒤 공백 지우기
-        // Gemini가 ```json ... ``` 으로 감싸서 주면, 벗겨내서 cleaned 변수에 저장a
+        // Gemini가 ```json ... ``` 으로 감싸서 주면, 벗겨내서 cleaned 변수에 저장
 
         return cleaned;
     }
