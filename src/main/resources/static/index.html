@@ -204,12 +204,12 @@
         <p class="lede">메뉴와 양을 짧게 적어주세요. 예: "현미밥 한 공기, 닭가슴살 150g, 계란후라이 1개"</p>
 
         <div class="card">
-            <textarea id="input-meal-text" rows="4" placeholder="예) 김치찌개 1인분, 공기밥 반 그릇, 계란말이 2조각"></textarea>
+            <textarea id="input-meal-text" rows="4" aria-label="먹은 음식" placeholder="예) 김치찌개 1인분, 공기밥 반 그릇, 계란말이 2조각"></textarea>
         </div>
 
         <p class="lede">또는, 사진 한 장으로 등록할 수도 있어요.</p>
         <div class="card">
-            <input type="file" id="input-meal-photo" accept="image/*" capture="environment">
+            <input type="file" id="input-meal-photo" accept="image/*" capture="environment" aria-label="음식 사진">
             <img id="meal-photo-preview" class="hidden" alt="선택한 음식 사진">
         </div>
 
@@ -223,25 +223,25 @@
     <section id="screen-result" class="screen">
         <button class="btn-back" id="btn-back-result">← 뒤로</button>
         <p class="eyebrow">05 · 분석 결과</p>
-        <input type="text" id="result-food-name" class="result-name-input" placeholder="음식 이름">
+        <input type="text" id="result-food-name" class="result-name-input" placeholder="음식 이름" aria-label="음식 이름">
 
         <div class="card">
             <p class="card-note">AI가 추정한 값이에요. 이상하면 숫자를 직접 고친 다음 저장하세요.</p>
             <div class="ledger-row ledger-strong">
                 <span>칼로리</span><span class="dots"></span>
-                <input type="number" id="result-kcal" class="result-input"><span class="unit">kcal</span>
+                <input type="number" id="result-kcal" class="result-input" aria-label="칼로리 (kcal)"><span class="unit">kcal</span>
             </div>
             <div class="ledger-row">
                 <span><span class="dot dot-carb"></span>탄수화물</span><span class="dots"></span>
-                <input type="number" id="result-carb" class="result-input"><span class="unit">g</span>
+                <input type="number" id="result-carb" class="result-input" aria-label="탄수화물 (g)"><span class="unit">g</span>
             </div>
             <div class="ledger-row">
                 <span><span class="dot dot-protein"></span>단백질</span><span class="dots"></span>
-                <input type="number" id="result-protein" class="result-input"><span class="unit">g</span>
+                <input type="number" id="result-protein" class="result-input" aria-label="단백질 (g)"><span class="unit">g</span>
             </div>
             <div class="ledger-row">
                 <span><span class="dot dot-fat"></span>지방</span><span class="dots"></span>
-                <input type="number" id="result-fat" class="result-input"><span class="unit">g</span>
+                <input type="number" id="result-fat" class="result-input" aria-label="지방 (g)"><span class="unit">g</span>
             </div>
         </div>
 

@@ -21,7 +21,7 @@ let state = {
     goalType: "",         // "bulk" | "diet" | "health" | "custom"
     customGoalText: "",   // 기타를 골랐을 때 직접 쓴 목표
     goalMethod: "",       // "ai" | "manual"
-    goal: {calories: 0, carb: 0, protein: 0, fat: 0},
+    goal: { calories: 0, carb: 0, protein: 0, fat: 0 },
     meals: []             // 오늘 먹은 음식 (서버에서 받아온 MealResponse 목록)
 };
 
@@ -98,10 +98,10 @@ function hideError(elementId) {
 // 우리 서버 API를 부르는 공통 함수
 // 실패하면 서버가 보낸 ErrorResponse의 message로 에러를 던짐
 async function callApi(method, url, body) {
-    const options = {method: method};
+    const options = { method: method };
 
     if (body) {
-        options.headers = {"Content-Type": "application/json"};
+        options.headers = { "Content-Type": "application/json" };
         options.body = JSON.stringify(body);
     }
 
@@ -140,7 +140,7 @@ function readImageAsBase64(file, maxSize = 1024) {
             URL.revokeObjectURL(url);
 
             const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-            resolve({base64: dataUrl.split(",")[1], mimeType: "image/jpeg"});
+            resolve({ base64: dataUrl.split(",")[1], mimeType: "image/jpeg" });
         };
 
         img.onerror = () => {
@@ -315,7 +315,7 @@ async function renderHome() {
         acc.protein += m.protein;
         acc.fat += m.fat;
         return acc;
-    }, {calories: 0, carb: 0, protein: 0, fat: 0});
+    }, { calories: 0, carb: 0, protein: 0, fat: 0 });
 
     document.getElementById("stat-kcal-now").textContent = Math.round(sum.calories);
     document.getElementById("stat-kcal-goal").textContent = Math.round(state.goal.calories);
@@ -410,12 +410,20 @@ async function renderWeeklyAverage() {
         avg = null;
     }
 
-    const hasRecord = avg && avg.days > 0;
-    document.getElementById("weekly-days").textContent = hasRecord ? avg.days : 0;
-    document.getElementById("weekly-kcal").textContent = hasRecord ? `${avg.calories} kcal` : "-";
-    document.getElementById("weekly-carb").textContent = hasRecord ? `${avg.carb} g` : "-";
-    document.getElementById("weekly-protein").textContent = hasRecord ? `${avg.protein} g` : "-";
-    document.getElementById("weekly-fat").textContent = hasRecord ? `${avg.fat} g` : "-";
+    // 기록이 없으면 "-"로 채우고 끝냄
+    if (!avg || avg.days === 0) {
+        document.getElementById("weekly-days").textContent = 0;
+        ["weekly-kcal", "weekly-carb", "weekly-protein", "weekly-fat"].forEach(id => {
+            document.getElementById(id).textContent = "-";
+        });
+        return;
+    }
+
+    document.getElementById("weekly-days").textContent = avg.days;
+    document.getElementById("weekly-kcal").textContent = `${avg.calories} kcal`;
+    document.getElementById("weekly-carb").textContent = `${avg.carb} g`;
+    document.getElementById("weekly-protein").textContent = `${avg.protein} g`;
+    document.getElementById("weekly-fat").textContent = `${avg.fat} g`;
 }
 
 document.getElementById("btn-to-diet").addEventListener("click", () => {
@@ -478,11 +486,11 @@ document.getElementById("btn-analyze-meal").addEventListener("click", async () =
         let body;
         let fallbackName;
         if (photoFile) {
-            const {base64, mimeType} = await readImageAsBase64(photoFile);
-            body = {imageBase64: base64, mimeType: mimeType};
+            const { base64, mimeType } = await readImageAsBase64(photoFile);
+            body = { imageBase64: base64, mimeType: mimeType };
             fallbackName = "사진으로 등록한 음식";
         } else {
-            body = {text: text};
+            body = { text: text };
             fallbackName = text.slice(0, 20);
         }
 
