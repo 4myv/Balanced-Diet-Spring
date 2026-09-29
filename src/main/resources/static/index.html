@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Balanced Diet · 일일 식단 관리</title>
 
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="/images/logo.png">
 </head>
 <body>
 <div class="app">
 
     <header class="masthead">
         <div class="masthead-title">
-            <img src="images/logo.png" alt="Balanced Diet 로고" class="masthead-logo">
+            <img src="/images/logo.png" alt="Balanced Diet 로고" class="masthead-logo">
             <span class="masthead-mark">Balanced Diet</span>
         </div>
     </header>
@@ -53,6 +54,7 @@
             </div>
         </div>
 
+        <p class="error-text hidden" id="onboarding-error"></p>
         <button class="btn-primary" id="btn-to-goal">다음 · 목표 설정하기</button>
     </section>
 
@@ -64,15 +66,15 @@
 
         <div class="choice-group" id="goal-type-group">
             <button class="choice" data-goal="bulk">
-                <img src="images/bulk.png" alt="벌크업">
+                <img src="/images/bulk.png" alt="벌크업">
                 <span>벌크업</span>
             </button>
             <button class="choice" data-goal="diet">
-                <img src="images/diet.png" alt="다이어트">
+                <img src="/images/diet.png" alt="다이어트">
                 <span>다이어트</span>
             </button>
             <button class="choice" data-goal="health">
-                <img src="images/health.png" alt="건강관리">
+                <img src="/images/health.png" alt="건강관리">
                 <span>건강관리</span>
             </button>
             <button class="choice" data-goal="custom">
@@ -93,7 +95,7 @@
 
         <!-- AI 분석 부분 -->
         <div class="card hidden" id="panel-ai">
-            <p class="card-note">위에서 입력한 신체 정보와 목표를 토대로 하루 권장 칼로리와 탄/단/지 목표량을 계산해요.</p>
+            <p class="card-note">저장된 신체 정보와 고른 목표를 토대로 하루 권장 칼로리와 탄/단/지 목표량을 계산해요.</p>
             <button class="btn-secondary" id="btn-calc-ai">AI로 목표 계산하기</button>
             <div id="ai-goal-preview" class="goal-preview hidden"></div>
         </div>
@@ -124,7 +126,6 @@
 
     <!-- 3. 홈 화면 -->
     <section id="screen-home" class="screen">
-        <button class="btn-back" id="btn-back-home">← 뒤로</button>
         <p class="eyebrow" id="today-date">03 · 오늘의 기록</p>
         <h1>오늘의 영양 현황</h1>
 
@@ -189,9 +190,10 @@
             </div>
         </div>
 
+        <p class="error-text hidden" id="home-error"></p>
         <button class="btn-primary" id="btn-to-diet">+ 식단 기록하기</button>
         <button class="btn-ghost" id="btn-reset-day">오늘 기록 초기화</button>
-        <button class="btn-ghost" id="btn-reset-all">처음부터 다시 설정하기</button>
+        <button class="btn-ghost" id="btn-reset-all">신체 정보·목표 다시 설정하기</button>
     </section>
 
     <!-- 4. 식단 등록 -->
@@ -243,6 +245,7 @@
             </div>
         </div>
 
+        <p class="error-text hidden" id="result-error"></p>
         <button class="btn-primary" id="btn-save-meal">오늘 기록에 저장하기</button>
         <button class="btn-ghost" id="btn-redo-meal">다시 입력하기</button>
     </section>
@@ -257,6 +260,6 @@
 
 </div>
 
-<script src="js/script.js"></script>
+<script src="/js/script.js"></script>
 </body>
 </html>

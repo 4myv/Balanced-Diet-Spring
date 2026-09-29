@@ -1,73 +1,56 @@
 /* balanced diet - script.js
-   기능별로 번호 매겨서 정리함
+   화면(프론트엔드)만 담당. 저장과 AI 분석은 전부 Spring 서버 API가 처리함.
+   브라우저에는 API 키도, 저장된 데이터도 없음.
 
-   흐름:
-   1. state 변수 하나에 데이터 다 모아둠
-   2. localStorage에 저장/불러오기
-   3. 화면 전환은 class 붙였다 뗐다 하는 걸로만 함
-   4. AI 호출 함수는 callAIForGoal, callAIForMeal, callAIForMealPhoto 이렇게 3개
+   사용하는 서버 API
+   - GET    /api/profile                  신체 정보·목표 조회 (없으면 404)
+   - POST   /api/profile                  신체 정보 저장
+   - POST   /api/goal/calculate           저장된 신체 정보로 AI 목표 계산
+   - POST   /api/profile/goal             목표 저장
+   - POST   /api/analyze                  식단 분석 (텍스트 또는 사진)
+   - POST   /api/meals                    식단 저장
+   - GET    /api/meals?date=YYYY-MM-DD    날짜별 식단 조회
+   - DELETE /api/meals/{id}               식단 삭제
+   - GET    /api/meals/weekly-average     최근 7일 평균
    ========================================================= */
 
-//  1. state 저장/불러오기
 
-const STORAGE_KEY = "balancedDietState";
-
-// 오늘 날짜 구하기 (날짜 바뀌면 기록 초기화할 때 씀)
-function getTodayString() {
-    return new Date().toISOString().slice(0, 10);
-}
-
-// 앱에서 쓰는 데이터 다 여기 모아둠
+//  1. 화면용 상태 — 화면을 그리려고 잠깐 들고 있는 값 (저장은 서버가 함)
 
 let state = {
-    profile: { height: "", weight: "", age: "", gender: "male", activity: "mid" },
-    goalType: "",     // "bulk" | "diet" | "health" | "custom"
-    customGoalText: "", // 기타 선택했을 때 직접 쓴 목표
-    goalMethod: "",   // "ai" | "manual"
-    goal: { calories: 0, carb: 0, protein: 0, fat: 0 },
-    date: getTodayString(),
-    meals: [],         // { name, calories, carb, protein, fat }
-    history: {},      // 날짜별 하루 합계 - 주간 평균용
+    goalType: "",         // "bulk" | "diet" | "health" | "custom"
+    customGoalText: "",   // 기타를 골랐을 때 직접 쓴 목표
+    goalMethod: "",       // "ai" | "manual"
+    goal: {calories: 0, carb: 0, protein: 0, fat: 0},
+    meals: []             // 오늘 먹은 음식 (서버에서 받아온 MealResponse 목록)
 };
 
-function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+let pendingMeal = null;   // AI 분석 결과를 저장 전까지 잠깐 들고 있는 곳
+
+// 오늘 날짜를 "YYYY-MM-DD"로 (브라우저가 있는 곳의 날짜 기준)
+function getTodayString() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
 }
 
-function loadState() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const saved = JSON.parse(raw);
-
-    // 날짜 바뀌면 식단 기록만 리셋 (목표는 그대로 둠)
-    if (saved.date !== getTodayString()) {
-        saved.date = getTodayString();
-        saved.meals = [];
-    }
-
-    if (!saved.history) saved.history = {};
-
-    state = saved;
-}
 
 //  2. 화면 전환, 뒤로가기
 
-// 지나온 화면들 순서대로 쌓아두는 배열 (뒤로가기용)
 let screenHistory = [];
 
-// 지금 보이는 화면 id 가져오기
 function getCurrentScreenId() {
     const current = document.querySelector(".screen.active");
     return current ? current.id : null;
 }
 
-// 화면만 바꿔주는 함수 (기록은 안 남김)
 function switchScreen(id) {
     document.querySelectorAll(".screen").forEach(el => el.classList.remove("active"));
     document.getElementById(id).classList.add("active");
 }
 
-// 다음 화면으로 넘어갈 때 쓰는 함수 (지금 화면 기록해두고 이동)
 function showScreen(id) {
     const current = getCurrentScreenId();
     if (current && current !== id) {
@@ -76,7 +59,6 @@ function showScreen(id) {
     switchScreen(id);
 }
 
-// 뒤로가기 버튼 누르면 이전 화면 꺼내서 보여줌
 function goBack() {
     const previous = screenHistory.pop();
     if (previous) {
@@ -84,169 +66,134 @@ function goBack() {
     }
 }
 
-// 뒤로 버튼들 전부 goBack 함수 연결
 document.querySelectorAll(".btn-back").forEach(btn => {
     btn.addEventListener("click", goBack);
 });
 
-//  3. 로딩 오버레이
+
+//  3. 로딩, 에러 표시
 
 function showLoading(text) {
     document.getElementById("loading-text").textContent = text;
     document.getElementById("loading-overlay").classList.remove("hidden");
 }
+
 function hideLoading() {
     document.getElementById("loading-overlay").classList.add("hidden");
 }
 
-//  4. Gemini API 호출 (AI 쓰는 함수는 여기 3개)
+function showError(elementId, message) {
+    const box = document.getElementById(elementId);
+    box.textContent = message;
+    box.classList.remove("hidden");
+}
 
-// 구글 AI 스튜디오에서 받은 API 키
-// 배포하기 전에 구글 클라우드 콘솔에서 내 사이트 주소로 제한 걸어두기!
-const GEMINI_API_KEY = "";
+function hideError(elementId) {
+    document.getElementById(elementId).classList.add("hidden");
+}
 
-// 지금 쓰는 모델 이름
-// 나중에 모델 없어졌다고 에러 뜨면 여기 이름만 그 에러에 나온 걸로 바꾸면 됨
-const GEMINI_MODEL = "gemini-3.6-flash";
 
-// Gemini한테 텍스트 보내고 응답 받아오는 함수
-async function askGemini(systemPrompt, userMessage) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+//  4. 서버 API 호출
 
-    const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ parts: [{ text: userMessage }] }],
-            generationConfig: { responseMimeType: "application/json" }
-        })
-    });
+// 우리 서버 API를 부르는 공통 함수
+// 실패하면 서버가 보낸 ErrorResponse의 message로 에러를 던짐
+async function callApi(method, url, body) {
+    const options = {method: method};
 
-    if (!response.ok) {
-        const errBody = await response.text();
-        throw new Error("API 오류 (" + response.status + "): " + errBody);
+    if (body) {
+        options.headers = {"Content-Type": "application/json"};
+        options.body = JSON.stringify(body);
     }
 
-    const data = await response.json();
-    const text = data.candidates[0].content.parts.map(part => part.text || "").join("");
-
-    // 가끔 ```json 으로 감싸서 응답할 때가 있어서 벗겨내는 부분
-    const cleaned = text.replace(/```json/g, "").replace(/```/g, "").trim();
-    return JSON.parse(cleaned);
-}
-
-// (1) 신체정보 + 목표 넣으면 하루 권장 칼로리랑 탄단지 계산해줌
-async function callAIForGoal(profile, goalType) {
-    const presetLabels = { bulk: "벌크업(근육 증량)", diet: "다이어트(체중 감량)", health: "건강관리(체중 유지)" };
-    const goalLabel = goalType === "custom" ? state.customGoalText : presetLabels[goalType];
-
-    const system =
-        "너는 영양 코치야. 사용자의 신체 정보와 목표를 보고 하루 권장 섭취량을 계산해. " +
-        "다른 설명 없이 아래 형식의 JSON 객체 하나만 출력해: " +
-        '{"calories": 숫자, "carb_g": 숫자, "protein_g": 숫자, "fat_g": 숫자}';
-
-    const userMessage =
-        `키 ${profile.height}cm, 몸무게 ${profile.weight}kg, 나이 ${profile.age}세, ` +
-        `성별 ${profile.gender === "male" ? "남성" : "여성"}, 활동량 ${profile.activity}, ` +
-        `목표는 ${goalLabel}. 하루 권장 칼로리와 탄수화물/단백질/지방 목표량(g)을 알려줘.`;
-
-    return askGemini(system, userMessage);
-}
-
-// (2) 먹은 거 텍스트로 적으면 칼로리/탄단지 계산
-async function callAIForMeal(mealText) {
-    const system =
-        "너는 영양 분석가야. 사용자가 적은 음식 설명을 보고 예상 영양 성분을 추정해. " +
-        "다른 설명 없이 아래 형식의 JSON 객체 하나만 출력해: " +
-        '{"food_name": "짧은 요약 이름", "calories": 숫자, "carb_g": 숫자, "protein_g": 숫자, "fat_g": 숫자}';
-
-    return askGemini(system, mealText);
-}
-
-async function callAIForMealPhoto(base64Image, mimeType) {
-    const system =
-        "너는 영양 분석가야. 사용자가 올린 음식 사진을 보고 어떤 음식인지, 예상 영양 성분을 추정해. " +
-        "다른 설명 없이 아래 형식의 JSON 객체 하나만 출력해: " +
-        '{"food_name": "짧은 요약 이름", "calories": 숫자, "carb_g": 숫자, "protein_g": 숫자, "fat_g": 숫자}';
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-
-    const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            systemInstruction: { parts: [{ text: system }] },
-            contents: [{
-                parts: [
-                    { inline_data: { mime_type: mimeType, data: base64Image } },
-                    { text: "이 사진 속 음식의 영양 성분을 분석해줘." }
-                ]
-            }],
-            generationConfig: { responseMimeType: "application/json" }
-        })
-    });
+    const response = await fetch(url, options);
 
     if (!response.ok) {
-        const errBody = await response.text();
-        throw new Error("API 오류 (" + response.status + "): " + errBody);
+        const errorText = await response.text();
+        let message = "요청에 실패했어요 (" + response.status + ")";
+        if (errorText) {
+            try {
+                message = JSON.parse(errorText).message || message;
+            } catch (e) {
+                // JSON이 아닌 응답이면 기본 문장 사용
+            }
+        }
+        throw new Error(message);
     }
 
-    const data = await response.json();
-    const text = data.candidates[0].content.parts.map(part => part.text || "").join("");
-    const cleaned = text.replace(/```json/g, "").replace(/```/g, "").trim();
-    return JSON.parse(cleaned);
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
 }
 
-// 사진 파일 base64로 바꿔주는 함수
-function readFileAsBase64(file) {
+// 사진을 가로·세로 최대 1024px로 줄인 뒤 base64 문자열로 바꿈
+// 원본 그대로 보내면 용량이 커서 느리고, AI 사용량도 많이 듦
+function readImageAsBase64(file, maxSize = 1024) {
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const base64 = reader.result.split(",")[1];
-            resolve({ base64, mimeType: file.type });
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+
+        img.onload = () => {
+            const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+            resolve({base64: dataUrl.split(",")[1], mimeType: "image/jpeg"});
         };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error("사진을 읽지 못했어요. 다른 사진으로 시도해주세요."));
+        };
+
+        img.src = url;
     });
 }
 
-// 5. 화면1 - 온보딩 (신체정보 입력)
 
-document.getElementById("btn-to-goal").addEventListener("click", () => {
-    state.profile = {
-        height: document.getElementById("input-height").value,
-        weight: document.getElementById("input-weight").value,
-        age: document.getElementById("input-age").value,
+//  5. 화면1 - 온보딩 (신체 정보)
+
+document.getElementById("btn-to-goal").addEventListener("click", async () => {
+    hideError("onboarding-error");
+
+    const profile = {
+        height: Number(document.getElementById("input-height").value),
+        weight: Number(document.getElementById("input-weight").value),
+        age: Number(document.getElementById("input-age").value),
         gender: document.getElementById("input-gender").value,
         activity: document.getElementById("input-activity").value
     };
-    saveState();
-    showScreen("screen-goal");
+
+    try {
+        await callApi("POST", "/api/profile", profile);
+        showScreen("screen-goal");
+    } catch (err) {
+        showError("onboarding-error", err.message);
+    }
 });
 
 
 //  6. 화면2 - 목표 설정
 
-
-// 목표 버튼 클릭했을 때
+// 목표 종류 버튼
 document.querySelectorAll("#goal-type-group .choice").forEach(btn => {
     btn.addEventListener("click", () => {
         document.querySelectorAll("#goal-type-group .choice").forEach(b => b.classList.remove("selected"));
         btn.classList.add("selected");
         state.goalType = btn.dataset.goal;
 
-        // 기타 선택했을 때만 입력창 보여주기
         document.getElementById("panel-custom-goal").classList.toggle("hidden", state.goalType !== "custom");
     });
 });
 
-// 기타 목표 직접 입력받기
+// 기타 목표 입력
 document.getElementById("input-custom-goal").addEventListener("input", (e) => {
     state.customGoalText = e.target.value;
 });
 
-// AI자동/직접 선택하면 거기에 맞는 패널만 보여주기
+// AI 자동 / 직접 설정 선택
 document.querySelectorAll("#goal-method-group .choice").forEach(btn => {
     btn.addEventListener("click", () => {
         document.querySelectorAll("#goal-method-group .choice").forEach(b => b.classList.remove("selected"));
@@ -258,49 +205,60 @@ document.querySelectorAll("#goal-method-group .choice").forEach(btn => {
     });
 });
 
-// AI 계산 버튼 눌렀을 때
+// AI 계산 버튼 — 목표 종류만 보내면 서버가 저장된 신체 정보로 계산
 document.getElementById("btn-calc-ai").addEventListener("click", async () => {
-    const errBox = document.getElementById("goal-error");
-    errBox.classList.add("hidden");
+    hideError("goal-error");
 
-    if (!state.goalType) { showGoalError("먼저 목표(벌크업/다이어트/건강관리/기타)를 선택해주세요."); return; }
-    if (state.goalType === "custom" && !state.customGoalText) { showGoalError("목표를 직접 입력해주세요."); return; }
+    if (!state.goalType) {
+        showError("goal-error", "먼저 목표(벌크업/다이어트/건강관리/기타)를 선택해주세요.");
+        return;
+    }
+    if (state.goalType === "custom" && !state.customGoalText.trim()) {
+        showError("goal-error", "목표를 직접 입력해주세요.");
+        return;
+    }
 
     try {
         showLoading("AI가 영양소 목표를 계산하고 있어요…");
-        const result = await callAIForGoal(state.profile, state.goalType);
+
+        const result = await callApi("POST", "/api/goal/calculate", {
+            goalType: state.goalType,
+            customGoalText: state.customGoalText
+        });
 
         state.goal = {
             calories: result.calories,
-            carb: result.carb_g,
-            protein: result.protein_g,
-            fat: result.fat_g
+            carb: result.carb,
+            protein: result.protein,
+            fat: result.fat
         };
 
         const preview = document.getElementById("ai-goal-preview");
         preview.innerHTML =
             `<div class="ledger-row ledger-strong"><span>칼로리</span><span class="dots"></span><span class="mono">${state.goal.calories} kcal</span></div>` +
-            `<div class="ledger-row"><span><i class="dot dot-carb"></i>탄수화물</span><span class="dots"></span><span class="mono">${state.goal.carb} g</span></div>` +
-            `<div class="ledger-row"><span><i class="dot dot-protein"></i>단백질</span><span class="dots"></span><span class="mono">${state.goal.protein} g</span></div>` +
-            `<div class="ledger-row"><span><i class="dot dot-fat"></i>지방</span><span class="dots"></span><span class="mono">${state.goal.fat} g</span></div>`;
+            `<div class="ledger-row"><span><span class="dot dot-carb"></span>탄수화물</span><span class="dots"></span><span class="mono">${state.goal.carb} g</span></div>` +
+            `<div class="ledger-row"><span><span class="dot dot-protein"></span>단백질</span><span class="dots"></span><span class="mono">${state.goal.protein} g</span></div>` +
+            `<div class="ledger-row"><span><span class="dot dot-fat"></span>지방</span><span class="dots"></span><span class="mono">${state.goal.fat} g</span></div>`;
         preview.classList.remove("hidden");
     } catch (err) {
-        showGoalError("계산에 실패했어요: " + err.message);
+        showError("goal-error", err.message);
     } finally {
         hideLoading();
     }
 });
 
-function showGoalError(message) {
-    const errBox = document.getElementById("goal-error");
-    errBox.textContent = message;
-    errBox.classList.remove("hidden");
-}
-
 // 목표 저장 버튼
-document.getElementById("btn-to-home").addEventListener("click", () => {
-    if (!state.goalType) { showGoalError("목표를 선택해주세요."); return; }
-    if (state.goalType === "custom" && !state.customGoalText) { showGoalError("목표를 직접 입력해주세요."); return; }
+document.getElementById("btn-to-home").addEventListener("click", async () => {
+    hideError("goal-error");
+
+    if (!state.goalType) {
+        showError("goal-error", "목표를 선택해주세요.");
+        return;
+    }
+    if (state.goalType === "custom" && !state.customGoalText.trim()) {
+        showError("goal-error", "목표를 직접 입력해주세요.");
+        return;
+    }
 
     if (state.goalMethod === "manual") {
         state.goal = {
@@ -312,25 +270,52 @@ document.getElementById("btn-to-home").addEventListener("click", () => {
     }
 
     if (!state.goal.calories) {
-        showGoalError("영양소 목표를 먼저 설정해주세요 (AI 자동 계산 또는 직접 입력).");
+        showError("goal-error", "영양소 목표를 먼저 설정해주세요 (AI 자동 계산 또는 직접 입력).");
         return;
     }
 
-    saveState();
-    renderHome();
+    try {
+        await callApi("POST", "/api/profile/goal", {
+            goalType: state.goalType,
+            customGoalText: state.customGoalText,
+            calories: state.goal.calories,
+            carb: state.goal.carb,
+            protein: state.goal.protein,
+            fat: state.goal.fat
+        });
+    } catch (err) {
+        showError("goal-error", err.message);
+        return;
+    }
+
+    await renderHome();
     showScreen("screen-home");
 });
 
-//  7. 화면3 - 홈 대시보드
 
-function renderHome() {
-    document.getElementById("today-date").textContent = "03 · " + state.date + " 기록";
+//  7. 화면3 - 홈
 
-    // 오늘 먹은 거 합계 구하기
+// 오늘 기록과 주간 평균을 서버에서 받아와서 화면을 다시 그림
+async function renderHome() {
+    hideError("home-error");
+    const today = getTodayString();
+    document.getElementById("today-date").textContent = "03 · " + today + " 기록";
+
+    try {
+        state.meals = await callApi("GET", "/api/meals?date=" + today);
+    } catch (err) {
+        state.meals = [];
+        showError("home-error", "오늘 기록을 불러오지 못했어요: " + err.message);
+    }
+
+    // 오늘 먹은 것 합계
     const sum = state.meals.reduce((acc, m) => {
-        acc.calories += m.calories; acc.carb += m.carb; acc.protein += m.protein; acc.fat += m.fat;
+        acc.calories += m.calories;
+        acc.carb += m.carb;
+        acc.protein += m.protein;
+        acc.fat += m.fat;
         return acc;
-    }, { calories: 0, carb: 0, protein: 0, fat: 0 });
+    }, {calories: 0, carb: 0, protein: 0, fat: 0});
 
     document.getElementById("stat-kcal-now").textContent = Math.round(sum.calories);
     document.getElementById("stat-kcal-goal").textContent = Math.round(state.goal.calories);
@@ -342,15 +327,10 @@ function renderHome() {
 
     renderRing(sum);
     renderMealList();
-
-    // 오늘 합계를 날짜별 기록에도 저장 (주간 평균 계산용)
-    state.history[state.date] = sum;
-    saveState();
-    renderWeeklyAverage();
+    await renderWeeklyAverage();
 }
 
-// 도넛 링 그래프 부분
-// 오늘칼로리/목표칼로리 비율만큼 채우고, 그 안에서 탄단지 비율로 색 나눔
+// 도넛 링 — 목표 대비 먹은 칼로리만큼 채우고, 그 안을 탄단지 비율로 나눔
 function renderRing(sum) {
     const r = 82;
     const circumference = 2 * Math.PI * r;
@@ -378,6 +358,7 @@ function setSegment(selector, circumference, length, offsetFromStart) {
     el.style.strokeDashoffset = -offsetFromStart;
 }
 
+// 오늘 먹은 음식 목록 — 음식 이름은 사용자가 입력한 값이라 textContent로 넣음 (HTML로 해석되지 않게)
 function renderMealList() {
     const list = document.getElementById("meal-list");
     const emptyRow = document.getElementById("meal-empty");
@@ -390,84 +371,84 @@ function renderMealList() {
     }
     emptyRow.classList.add("hidden");
 
-    state.meals.forEach((meal, index) => {
+    state.meals.forEach(meal => {
         const li = document.createElement("li");
-        li.innerHTML =
-            `<span class="meal-name">${meal.name}</span>` +
-            `<span class="meal-kcal">${Math.round(meal.calories)} kcal</span>` +
-            `<button class="btn-delete" data-index="${index}">✕</button>`;
+
+        const name = document.createElement("span");
+        name.className = "meal-name";
+        name.textContent = meal.name;
+
+        const kcal = document.createElement("span");
+        kcal.className = "meal-kcal";
+        kcal.textContent = Math.round(meal.calories) + " kcal";
+
+        const del = document.createElement("button");
+        del.className = "btn-delete";
+        del.textContent = "✕";
+        del.setAttribute("aria-label", meal.name + " 삭제");
+        del.addEventListener("click", async () => {
+            try {
+                await callApi("DELETE", "/api/meals/" + meal.id);
+            } catch (err) {
+                showError("home-error", err.message);
+                return;
+            }
+            await renderHome();
+        });
+
+        li.append(name, kcal, del);
         list.appendChild(li);
     });
-
-    // 방금 만든 삭제 버튼들에 클릭 이벤트 연결
-    list.querySelectorAll(".btn-delete").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const index = Number(btn.dataset.index);
-            state.meals.splice(index, 1); // 그 음식 하나만 배열에서 빼기
-            saveState();
-            renderHome();
-        });
-    });
 }
 
-// 최근 7일 중 기록이 있는 날짜들만 모아서 평균 계산
-function getWeeklyAverage() {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        days.push(d.toISOString().slice(0, 10));
+// 주간 평균 — 계산은 서버가 함
+async function renderWeeklyAverage() {
+    let avg = null;
+    try {
+        avg = await callApi("GET", "/api/meals/weekly-average");
+    } catch (err) {
+        avg = null;
     }
 
-    const entries = days.map(d => state.history[d]).filter(Boolean);
-    if (entries.length === 0) return null;
-
-    const total = entries.reduce((acc, e) => {
-        acc.calories += e.calories; acc.carb += e.carb; acc.protein += e.protein; acc.fat += e.fat;
-        return acc;
-    }, { calories: 0, carb: 0, protein: 0, fat: 0 });
-
-    const n = entries.length;
-    return { calories: total.calories / n, carb: total.carb / n, protein: total.protein / n, fat: total.fat / n, days: n };
+    const hasRecord = avg && avg.days > 0;
+    document.getElementById("weekly-days").textContent = hasRecord ? avg.days : 0;
+    document.getElementById("weekly-kcal").textContent = hasRecord ? `${avg.calories} kcal` : "-";
+    document.getElementById("weekly-carb").textContent = hasRecord ? `${avg.carb} g` : "-";
+    document.getElementById("weekly-protein").textContent = hasRecord ? `${avg.protein} g` : "-";
+    document.getElementById("weekly-fat").textContent = hasRecord ? `${avg.fat} g` : "-";
 }
-
-function renderWeeklyAverage() {
-    const avg = getWeeklyAverage();
-    document.getElementById("weekly-days").textContent = avg ? avg.days : 0;
-    document.getElementById("weekly-kcal").textContent = avg ? `${Math.round(avg.calories)} kcal` : "-";
-    document.getElementById("weekly-carb").textContent = avg ? `${Math.round(avg.carb)} g` : "-";
-    document.getElementById("weekly-protein").textContent = avg ? `${Math.round(avg.protein)} g` : "-";
-    document.getElementById("weekly-fat").textContent = avg ? `${Math.round(avg.fat)} g` : "-";
-}
-
-document.getElementById("btn-reset-all").addEventListener("click", () => {
-    if (confirm("신체 정보와 목표까지 전부 지우고 처음부터 다시 시작할까요?")) {
-        localStorage.removeItem(STORAGE_KEY);
-        location.reload();
-    }
-});
 
 document.getElementById("btn-to-diet").addEventListener("click", () => {
     document.getElementById("input-meal-text").value = "";
     document.getElementById("input-meal-photo").value = "";
     document.getElementById("meal-photo-preview").classList.add("hidden");
-    document.getElementById("diet-error").classList.add("hidden");
+    hideError("diet-error");
     showScreen("screen-diet");
 });
 
-document.getElementById("btn-reset-day").addEventListener("click", () => {
-    if (confirm("오늘 기록한 식단을 모두 지울까요?")) {
-        state.meals = [];
-        saveState();
-        renderHome();
+// 오늘 기록 초기화 — 오늘 기록을 하나씩 서버에서 삭제
+document.getElementById("btn-reset-day").addEventListener("click", async () => {
+    if (!confirm("오늘 기록한 식단을 모두 지울까요?")) return;
+
+    try {
+        for (const meal of state.meals) {
+            await callApi("DELETE", "/api/meals/" + meal.id);
+        }
+    } catch (err) {
+        showError("home-error", err.message);
     }
+    await renderHome();
 });
+
+// 신체 정보·목표 다시 설정 — 서버가 "있으면 수정"으로 저장하니 지울 필요 없이 온보딩으로
+document.getElementById("btn-reset-all").addEventListener("click", () => {
+    hideError("onboarding-error");
+    showScreen("screen-onboarding");
+});
+
 
 //  8. 화면4 - 식단 등록
 
-let pendingMeal = null; // AI 분석 결과 잠깐 저장해두는 변수
-
-// 사진 선택하면 미리보기 보여주기
 document.getElementById("input-meal-photo").addEventListener("change", (e) => {
     const file = e.target.files[0];
     const preview = document.getElementById("meal-photo-preview");
@@ -480,38 +461,39 @@ document.getElementById("input-meal-photo").addEventListener("change", (e) => {
     preview.classList.remove("hidden");
 });
 
+// 분석 버튼 — 사진이 있으면 사진으로, 없으면 텍스트로 서버에 분석 요청
 document.getElementById("btn-analyze-meal").addEventListener("click", async () => {
     const text = document.getElementById("input-meal-text").value.trim();
     const photoFile = document.getElementById("input-meal-photo").files[0];
-    const errBox = document.getElementById("diet-error");
-    errBox.classList.add("hidden");
+    hideError("diet-error");
 
     if (!text && !photoFile) {
-        errBox.textContent = "먹은 음식을 텍스트로 입력하거나, 사진을 올려주세요.";
-        errBox.classList.remove("hidden");
+        showError("diet-error", "먹은 음식을 텍스트로 입력하거나, 사진을 올려주세요.");
         return;
     }
 
     try {
         showLoading("AI가 영양소를 분석하고 있어요…");
 
-        let result;
+        let body;
         let fallbackName;
         if (photoFile) {
-            const { base64, mimeType } = await readFileAsBase64(photoFile);
-            result = await callAIForMealPhoto(base64, mimeType);
+            const {base64, mimeType} = await readImageAsBase64(photoFile);
+            body = {imageBase64: base64, mimeType: mimeType};
             fallbackName = "사진으로 등록한 음식";
         } else {
-            result = await callAIForMeal(text);
+            body = {text: text};
             fallbackName = text.slice(0, 20);
         }
 
+        const result = await callApi("POST", "/api/analyze", body);
+
         pendingMeal = {
-            name: result.food_name || fallbackName,
+            name: result.foodName || fallbackName,
             calories: Number(result.calories) || 0,
-            carb: Number(result.carb_g) || 0,
-            protein: Number(result.protein_g) || 0,
-            fat: Number(result.fat_g) || 0
+            carb: Number(result.carb) || 0,
+            protein: Number(result.protein) || 0,
+            fat: Number(result.fat) || 0
         };
 
         document.getElementById("result-food-name").value = pendingMeal.name;
@@ -520,10 +502,10 @@ document.getElementById("btn-analyze-meal").addEventListener("click", async () =
         document.getElementById("result-protein").value = Math.round(pendingMeal.protein);
         document.getElementById("result-fat").value = Math.round(pendingMeal.fat);
 
+        hideError("result-error");
         showScreen("screen-result");
     } catch (err) {
-        errBox.textContent = "분석에 실패했어요: " + err.message;
-        errBox.classList.remove("hidden");
+        showError("diet-error", err.message);
     } finally {
         hideLoading();
     }
@@ -532,39 +514,75 @@ document.getElementById("btn-analyze-meal").addEventListener("click", async () =
 document.getElementById("btn-cancel-meal").addEventListener("click", () => showScreen("screen-home"));
 
 
-//  9. 화면5 - 분석 결과 확인
+//  9. 화면5 - 분석 결과 확인 후 저장
 
-document.getElementById("btn-save-meal").addEventListener("click", () => {
+document.getElementById("btn-save-meal").addEventListener("click", async () => {
     if (!pendingMeal) return;
+    hideError("result-error");
 
-    // 사용자가 저장 전에 직접 고친 값이 있으면 그 값을 그대로 반영
-    pendingMeal.name = document.getElementById("result-food-name").value.trim() || pendingMeal.name;
-    pendingMeal.calories = Number(document.getElementById("result-kcal").value) || 0;
-    pendingMeal.carb = Number(document.getElementById("result-carb").value) || 0;
-    pendingMeal.protein = Number(document.getElementById("result-protein").value) || 0;
-    pendingMeal.fat = Number(document.getElementById("result-fat").value) || 0;
+    // 사용자가 고친 값이 있으면 그 값으로 저장
+    const meal = {
+        name: document.getElementById("result-food-name").value.trim() || pendingMeal.name,
+        calories: Number(document.getElementById("result-kcal").value) || 0,
+        carb: Number(document.getElementById("result-carb").value) || 0,
+        protein: Number(document.getElementById("result-protein").value) || 0,
+        fat: Number(document.getElementById("result-fat").value) || 0
+    };
 
-    state.meals.push(pendingMeal);
+    try {
+        await callApi("POST", "/api/meals", meal);
+    } catch (err) {
+        showError("result-error", err.message);
+        return;
+    }
+
     pendingMeal = null;
-    saveState();
-    renderHome();
+    await renderHome();
     showScreen("screen-home");
 });
 
 document.getElementById("btn-redo-meal").addEventListener("click", () => showScreen("screen-diet"));
 
 
-//  10. 로드할 때 - 저장된 정보 있으면 이어서, 없으면 처음부터
+//  10. 처음 열 때 — 서버에 물어보고 어느 화면부터 보여줄지 정함
 
-loadState();
+async function start() {
+    // 1차 버전이 남긴 브라우저 저장 데이터 정리 (이제는 서버에 저장함)
+    localStorage.removeItem("balancedDietState");
 
-if (state.goal.calories > 0) {
-    renderHome();
-    showScreen("screen-home");
-} else {
-    // 예전에 입력한 값 있으면 다시 채워넣기
-    if (state.profile.height) document.getElementById("input-height").value = state.profile.height;
-    if (state.profile.weight) document.getElementById("input-weight").value = state.profile.weight;
-    if (state.profile.age) document.getElementById("input-age").value = state.profile.age;
-    showScreen("screen-onboarding");
+    let profile;
+    try {
+        profile = await callApi("GET", "/api/profile");
+    } catch (err) {
+        // 신체 정보가 없으면(404) 온보딩부터
+        showScreen("screen-onboarding");
+        return;
+    }
+
+    // 저장된 신체 정보를 입력칸에 채워두기 (다시 설정할 때 편하게)
+    document.getElementById("input-height").value = profile.height;
+    document.getElementById("input-weight").value = profile.weight;
+    document.getElementById("input-age").value = profile.age;
+    document.getElementById("input-gender").value = profile.gender;
+    document.getElementById("input-activity").value = profile.activity;
+
+    // 목표까지 정했으면 홈으로
+    if (profile.goalCalories > 0) {
+        state.goalType = profile.goalType || "";
+        state.customGoalText = profile.customGoalText || "";
+        state.goal = {
+            calories: profile.goalCalories,
+            carb: profile.goalCarb,
+            protein: profile.goalProtein,
+            fat: profile.goalFat
+        };
+        await renderHome();
+        showScreen("screen-home");
+        return;
+    }
+
+    // 신체 정보만 있으면 목표 설정부터
+    showScreen("screen-goal");
 }
+
+start();
