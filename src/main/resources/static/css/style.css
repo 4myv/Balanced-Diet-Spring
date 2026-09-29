@@ -429,3 +429,15 @@ textarea,
     color: #A0A0A0;
     font-size: 0.85rem;
 }
+
+/* 목표 선택 - 라디오 동그라미는 숨기고, 고른 칸만 색 바꾸기 */
+.choice input[type="hello"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.choice:has(input:checked) {
+    background: rgba(201, 201, 201, 0.723);
+    border-color: var(--main-color);
+}
