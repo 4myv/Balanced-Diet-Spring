@@ -1,0 +1,431 @@
+/* balanced diet - style.css
+   기본 글꼴만 쓰고, 색은 변수로 관리, 효과는 최소화 */
+
+/* 색상 변수 */
+:root {
+    --main-color: #cecece;     /* 버튼, 포인트 색 */
+    --bg-color: #181818;       /* 배경색 */
+    --card-color: #242424;     /* 카드/입력창 배경 */
+    --text-color: #EDEDED;     /* 글자색 */
+    --border-color: #3A3A3A;   /* 테두리, 구분선 */
+
+    --carb-color: #E8A33D;    /* 탄수화물 색 */
+    --protein-color: #E8735A; /* 단백질 색 */
+    --fat-color: #7FBF7F;     /* 지방 색 */
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: sans-serif;
+    line-height: 1.5;
+}
+
+.app {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 헤더 */
+.masthead {
+    border-bottom: 2px solid var(--main-color);
+    padding-bottom: 10px;
+    margin-bottom: 24px;
+    margin-top: 24px;
+    text-align: center;
+    background-color: #e4e4e4;
+    border-radius: 20px;
+}
+.masthead-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.masthead-logo {
+    width: 80px;
+    height: 100px
+}
+.masthead-mark {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #000;
+}
+
+/* 화면 전환
+   원래 다 안 보이게(none) 해두고, js가 active 클래스 붙이면 그것만 보이게 함
+   hidden도 같은 원리 */
+.screen {
+    display: none;
+}
+.screen.active {
+    display: block;
+}
+
+.eyebrow {
+    font-size: 0.8rem;
+    color: #A0A0A0;
+    margin: 0 0 4px;
+}
+
+/* 뒤로가기 버튼 */
+.btn-back {
+    display: inline-block;
+    background: none;
+    border: none;
+    color: var(--main-color);
+    font-size: 0.9rem;
+    padding: 0;
+    margin-bottom: 12px;
+    cursor: pointer;
+}
+
+h1 {
+    font-size: 1.4rem;
+    margin: 0 0 10px;
+}
+
+h2.section-title {
+    font-size: 1.1rem;
+    margin: 24px 0 10px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 6px;
+}
+
+.lede {
+    color: #A0A0A0;
+    font-size: 0.9rem;
+    margin: 0 0 16px;
+}
+
+/* 카드 박스 */
+.card {
+    background: var(--card-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+.card-note {
+    font-size: 0.8rem;
+    color: #A0A0A0;
+    margin: 8px 0 0;
+}
+.hidden {
+    display: none !important;
+}
+
+/* 입력 폼 */
+.field-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.field-row:last-child {
+    border-bottom: none;
+}
+.field-row input,
+.field-row select {
+    font-size: 0.9rem;
+    border: 1px solid var(--border-color);
+    background: var(--card-color);
+    color: var(--text-color);
+    border-radius: 4px;
+    padding: 6px 8px;
+    width: 130px;
+}
+.field-row select {
+    width: auto;
+    flex: 1;
+}
+
+textarea,
+#panel-custom-goal input,
+.key-note + input {
+    width: 100%;
+    font-size: 0.95rem;
+    border: 1px solid var(--border-color);
+    background: var(--card-color);
+    color: var(--text-color);
+    border-radius: 4px;
+    padding: 10px;
+}
+
+#panel-custom-goal label {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+}
+
+/* 목표 선택 버튼 */
+.choice-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.choice {
+    flex: 1;
+    min-width: 80px;
+    font-size: 0.85rem;
+    padding: 10px 6px;
+    border: 1px solid var(--border-color);
+    background: #cecece;
+    color: #000;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+.choice img {
+    width: 40px;
+    height: 40px;
+    border-radius: 20%;
+}
+.choice.selected {
+    background: rgba(201, 201, 201, 0.723);
+    border-color: var(--main-color);
+}
+
+.goal-preview {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* 버튼 */
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+    display: block;
+    width: 100%;
+    font-size: 0.95rem;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    border: 1px solid var(--main-color);
+}
+.btn-primary {
+    background: var(--main-color);
+    color: #000;
+}
+.btn-secondary {
+    background: var(--card-color);
+    color: var(--main-color);
+}
+.btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: #A0A0A0;
+    text-decoration: underline;
+}
+
+.error-text {
+    color: #FF6B6B;
+    font-size: 0.85rem;
+    margin: -6px 0 12px;
+}
+
+/* 영양 현황 */
+.label-panel {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    background: var(--card-color);
+    margin-bottom: 8px;
+}
+
+.ring-wrap {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    margin: 0 auto 16px;
+}
+.ring-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+.ring-bg,
+.ring-seg {
+    fill: none;
+    stroke-width: 14;
+}
+.ring-bg {
+    stroke: var(--border-color);
+}
+.ring-carb    { stroke: var(--carb-color); }
+.ring-protein { stroke: var(--protein-color); }
+.ring-fat     { stroke: var(--fat-color); }
+
+.ring-center {
+    /* absolute + top/left/right/bottom 0 하면 부모 전체 꽉 채움 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.ring-kcal {
+    font-size: 1.4rem;
+    font-weight: bold;
+}
+.ring-kcal-sep {
+    color: #A0A0A0;
+    margin: 0 2px;
+}
+.ring-kcal-goal {
+    color: #A0A0A0;
+}
+.ring-kcal-unit {
+    font-size: 0.7rem;
+    color: #A0A0A0;
+}
+
+/* 영양소 목록 */
+.nutrient-ledger {
+    border-top: 1px solid var(--border-color);
+    padding-top: 8px;
+}
+.ledger-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+.ledger-row .dots {
+    flex: 1;
+}
+.ledger-strong {
+    font-weight: bold;
+}
+
+.dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+.dot-carb    { background: var(--carb-color); }
+.dot-protein { background: var(--protein-color); }
+.dot-fat     { background: var(--fat-color); }
+
+/* 식단 목록 */
+.meal-list {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+}
+.meal-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    gap: 10px;
+}
+.meal-empty {
+    color: #A0A0A0;
+}
+.meal-kcal {
+    color: #A0A0A0;
+    white-space: nowrap;
+}
+
+/* 로딩 화면 */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.loading-box {
+    background: var(--card-color);
+    border-radius: 8px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+}
+.loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--main-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 사진 미리보기 */
+#meal-photo-preview {
+    display: block;
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+/* 음식 목록 삭제 버튼 */
+.btn-delete {
+    background: none;
+    border: none;
+    color: #A0A0A0;
+    cursor: pointer;
+    font-size: 0.95rem;
+    padding: 0 0 0 6px;
+}
+
+/* 분석 결과 수정 입력창 */
+.result-name-input {
+    display: block;
+    width: 100%;
+    font-size: 1.4rem;
+    font-weight: bold;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 4px 0;
+    margin: 0 0 16px;
+}
+.result-input {
+    width: 70px;
+    text-align: right;
+    font-size: 0.9rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    border-radius: 4px;
+    padding: 4px 6px;
+}
+.unit {
+    color: #A0A0A0;
+    font-size: 0.85rem;
+}
