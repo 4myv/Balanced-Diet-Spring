@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanced Diet · 일일 식단 관리</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+
+    <header class="masthead">
+        <div class="masthead-title">
+            <img src="images/logo.png" alt="Balanced Diet 로고" class="masthead-logo">
+            <span class="masthead-mark">Balanced Diet</span>
+        </div>
+    </header>
+
+    <!-- 1. 신체정보 입력 -->
+    <section id="screen-onboarding" class="screen active">
+        <p class="eyebrow">01 · 시작하기</p>
+        <h1>당신의 몸을 알려주세요</h1>
+        <p class="lede">키·몸무게·나이 같은 기초 정보를 입력하면, AI가 하루 권장 영양소를 계산하는 데 사용해요.</p>
+
+        <div class="card">
+            <div class="field-row">
+                <label for="input-height">키 (cm)</label>
+                <input type="number" id="input-height" placeholder="170" inputmode="decimal">
+            </div>
+            <div class="field-row">
+                <label for="input-weight">몸무게 (kg)</label>
+                <input type="number" id="input-weight" placeholder="65" inputmode="decimal">
+            </div>
+            <div class="field-row">
+                <label for="input-age">나이</label>
+                <input type="number" id="input-age" placeholder="28" inputmode="numeric">
+            </div>
+            <div class="field-row">
+                <label for="input-gender">성별</label>
+                <select id="input-gender">
+                    <option value="male">남성</option>
+                    <option value="female">여성</option>
+                </select>
+            </div>
+            <div class="field-row">
+                <label for="input-activity">활동량</label>
+                <select id="input-activity">
+                    <option value="low">낮음 · 주로 앉아서 생활</option>
+                    <option value="mid" selected>보통 · 주 2~3회 운동</option>
+                    <option value="high">높음 · 주 4회 이상 운동</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn-primary" id="btn-to-goal">다음 · 목표 설정하기</button>
+    </section>
+
+    <!-- 2. 목표 설정 -->
+    <section id="screen-goal" class="screen">
+        <button class="btn-back" id="btn-back-goal">← 뒤로</button>
+        <p class="eyebrow">02 · 목표 설정</p>
+        <h1>무엇을 관리하고 싶나요?</h1>
+
+        <div class="choice-group" id="goal-type-group">
+            <button class="choice" data-goal="bulk">
+                <img src="images/bulk.png" alt="벌크업">
+                <span>벌크업</span>
+            </button>
+            <button class="choice" data-goal="diet">
+                <img src="images/diet.png" alt="다이어트">
+                <span>다이어트</span>
+            </button>
+            <button class="choice" data-goal="health">
+                <img src="images/health.png" alt="건강관리">
+                <span>건강관리</span>
+            </button>
+            <button class="choice" data-goal="custom">
+                <span>기타</span>
+            </button>
+        </div>
+
+        <div class="card hidden" id="panel-custom-goal">
+            <label for="input-custom-goal">목표를 직접 적어주세요</label>
+            <input type="text" id="input-custom-goal" placeholder="예: 임신 준비 중이라 영양 균형이 중요해요">
+        </div>
+
+        <p class="lede">영양소 목표를 어떻게 정할까요?</p>
+        <div class="choice-group" id="goal-method-group">
+            <button class="choice" data-method="ai">AI 자동 설정</button>
+            <button class="choice" data-method="manual">직접 설정</button>
+        </div>
+
+        <!-- AI 분석 부분 -->
+        <div class="card hidden" id="panel-ai">
+            <p class="card-note">위에서 입력한 신체 정보와 목표를 토대로 하루 권장 칼로리와 탄/단/지 목표량을 계산해요.</p>
+            <button class="btn-secondary" id="btn-calc-ai">AI로 목표 계산하기</button>
+            <div id="ai-goal-preview" class="goal-preview hidden"></div>
+        </div>
+
+        <!-- 직접 입력 -->
+        <div class="card hidden" id="panel-manual">
+            <div class="field-row">
+                <label for="input-cal-manual">하루 목표 칼로리 (kcal)</label>
+                <input type="number" id="input-cal-manual" placeholder="2200">
+            </div>
+            <div class="field-row">
+                <label for="input-carb-manual">탄수화물 (g)</label>
+                <input type="number" id="input-carb-manual" placeholder="250">
+            </div>
+            <div class="field-row">
+                <label for="input-protein-manual">단백질 (g)</label>
+                <input type="number" id="input-protein-manual" placeholder="130">
+            </div>
+            <div class="field-row">
+                <label for="input-fat-manual">지방 (g)</label>
+                <input type="number" id="input-fat-manual" placeholder="60">
+            </div>
+        </div>
+
+        <p class="error-text hidden" id="goal-error"></p>
+        <button class="btn-primary" id="btn-to-home">목표 저장하고 시작하기</button>
+    </section>
+
+    <!-- 3. 홈 화면 -->
+    <section id="screen-home" class="screen">
+        <button class="btn-back" id="btn-back-home">← 뒤로</button>
+        <p class="eyebrow" id="today-date">03 · 오늘의 기록</p>
+        <h1>오늘의 영양 현황</h1>
+
+        <div class="label-panel">
+            <div class="ring-wrap">
+                <svg viewBox="0 0 200 200" class="ring-svg">
+                    <circle class="ring-bg" cx="100" cy="100" r="82"></circle>
+                    <circle class="ring-seg ring-carb"    cx="100" cy="100" r="82"></circle>
+                    <circle class="ring-seg ring-protein" cx="100" cy="100" r="82"></circle>
+                    <circle class="ring-seg ring-fat"     cx="100" cy="100" r="82"></circle>
+                </svg>
+                <div class="ring-center">
+                    <span class="ring-kcal" id="stat-kcal-now">0</span>
+                    <span class="ring-kcal-sep">/</span>
+                    <span class="ring-kcal-goal" id="stat-kcal-goal">0</span>
+                    <span class="ring-kcal-unit">kcal</span>
+                </div>
+            </div>
+
+            <div class="nutrient-ledger">
+                <div class="ledger-row ledger-strong">
+                    <span>칼로리</span>
+                    <span class="dots"></span>
+                    <span class="mono" id="ledger-kcal">0 / 0 kcal</span>
+                </div>
+                <div class="ledger-row">
+                    <span><span class="dot dot-carb"></span>탄수화물</span>
+                    <span class="dots"></span>
+                    <span class="mono" id="ledger-carb">0 / 0 g</span>
+                </div>
+                <div class="ledger-row">
+                    <span><span class="dot dot-protein"></span>단백질</span>
+                    <span class="dots"></span>
+                    <span class="mono" id="ledger-protein">0 / 0 g</span>
+                </div>
+                <div class="ledger-row">
+                    <span><span class="dot dot-fat"></span>지방</span>
+                    <span class="dots"></span>
+                    <span class="mono" id="ledger-fat">0 / 0 g</span>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">오늘 먹은 음식</h2>
+        <ul class="meal-list" id="meal-list">
+            <li class="meal-empty" id="meal-empty">아직 기록한 음식이 없어요.</li>
+        </ul>
+
+        <h2 class="section-title">이번 주 평균 (<span id="weekly-days">0</span>일 기록 기준)</h2>
+        <div class="card">
+            <div class="ledger-row ledger-strong">
+                <span>칼로리</span><span class="dots"></span><span class="mono" id="weekly-kcal">-</span>
+            </div>
+            <div class="ledger-row">
+                <span><span class="dot dot-carb"></span>탄수화물</span><span class="dots"></span><span class="mono" id="weekly-carb">-</span>
+            </div>
+            <div class="ledger-row">
+                <span><span class="dot dot-protein"></span>단백질</span><span class="dots"></span><span class="mono" id="weekly-protein">-</span>
+            </div>
+            <div class="ledger-row">
+                <span><span class="dot dot-fat"></span>지방</span><span class="dots"></span><span class="mono" id="weekly-fat">-</span>
+            </div>
+        </div>
+
+        <button class="btn-primary" id="btn-to-diet">+ 식단 기록하기</button>
+        <button class="btn-ghost" id="btn-reset-day">오늘 기록 초기화</button>
+        <button class="btn-ghost" id="btn-reset-all">처음부터 다시 설정하기</button>
+    </section>
+
+    <!-- 4. 식단 등록 -->
+    <section id="screen-diet" class="screen">
+        <button class="btn-back" id="btn-back-diet">← 뒤로</button>
+        <p class="eyebrow">04 · 식단 기록</p>
+        <h1>무엇을 먹었나요?</h1>
+        <p class="lede">메뉴와 양을 짧게 적어주세요. 예: "현미밥 한 공기, 닭가슴살 150g, 계란후라이 1개"</p>
+
+        <div class="card">
+            <textarea id="input-meal-text" rows="4" placeholder="예) 김치찌개 1인분, 공기밥 반 그릇, 계란말이 2조각"></textarea>
+        </div>
+
+        <p class="lede">또는, 사진 한 장으로 등록할 수도 있어요.</p>
+        <div class="card">
+            <input type="file" id="input-meal-photo" accept="image/*" capture="environment">
+            <img id="meal-photo-preview" class="hidden" alt="선택한 음식 사진">
+        </div>
+
+        <p class="error-text hidden" id="diet-error"></p>
+
+        <button class="btn-primary" id="btn-analyze-meal">AI로 영양소 분석하기</button>
+        <button class="btn-ghost" id="btn-cancel-meal">취소</button>
+    </section>
+
+    <!-- 5. 분석 결과 -->
+    <section id="screen-result" class="screen">
+        <button class="btn-back" id="btn-back-result">← 뒤로</button>
+        <p class="eyebrow">05 · 분석 결과</p>
+        <input type="text" id="result-food-name" class="result-name-input" placeholder="음식 이름">
+
+        <div class="card">
+            <p class="card-note">AI가 추정한 값이에요. 이상하면 숫자를 직접 고친 다음 저장하세요.</p>
+            <div class="ledger-row ledger-strong">
+                <span>칼로리</span><span class="dots"></span>
+                <input type="number" id="result-kcal" class="result-input"><span class="unit">kcal</span>
+            </div>
+            <div class="ledger-row">
+                <span><span class="dot dot-carb"></span>탄수화물</span><span class="dots"></span>
+                <input type="number" id="result-carb" class="result-input"><span class="unit">g</span>
+            </div>
+            <div class="ledger-row">
+                <span><span class="dot dot-protein"></span>단백질</span><span class="dots"></span>
+                <input type="number" id="result-protein" class="result-input"><span class="unit">g</span>
+            </div>
+            <div class="ledger-row">
+                <span><span class="dot dot-fat"></span>지방</span><span class="dots"></span>
+                <input type="number" id="result-fat" class="result-input"><span class="unit">g</span>
+            </div>
+        </div>
+
+        <button class="btn-primary" id="btn-save-meal">오늘 기록에 저장하기</button>
+        <button class="btn-ghost" id="btn-redo-meal">다시 입력하기</button>
+    </section>
+
+    <!-- 로딩중 화면 -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-box">
+            <span class="loading-spinner"></span>
+            <span id="loading-text">AI가 계산하고 있어요…</span>
+        </div>
+    </div>
+
+</div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
