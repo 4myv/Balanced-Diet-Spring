@@ -7,10 +7,12 @@ import com.balanceddiet.server.dto.GoalResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,10 @@ public class GeminiService {
             "health", "건강관리(체중 유지)"
     );
 
+    // Duration은 시간의 길이를 담는 자료형
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);  // Gemini 서버와 연결되기까지 기다리는 시간
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);    // 연결된 뒤 응답까지 기다리는 시간
+
     // 서비스 클래스에는 "요청마다 달라지는 값"을 필드로 두지 않는다
     // 빈은 기본적으로 하나가 만들어져서 모든 요청을 같이 사용
     // GeminiService라는 한 객체 안의 값이 요청 도중에 바뀌면 다른 사용자의 요청과 섞일 수 있음
@@ -57,8 +63,22 @@ public class GeminiService {
                          // @Value를 사용하여 빈 말고 설정 파일 값에서 가져오라 함
                          @Value("${gemini.api-key}") String apiKey,
                          @Value("${gemini.model}") String model) {
-        this.restClient = RestClient.create("https://generativelanguage.googleapis.com");
-        // create("base URL") -- 기본 주소 지정
+
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        // SimpleClientHttpRequestFactory: RestClient가 실제로 인터넷 요청을 보낼 때 쓰는 도구
+        // RestClient는 "어떻게 보낼지" 정리하고, SimpleClientHttpRequestFactory는 연결을 맺고 데이터를 주고받음
+
+        requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
+        requestFactory.setReadTimeout(READ_TIMEOUT);
+        // CONNECT_TIMEOUT과 READ_TIMEOUT 상수를 이 도구에 설정함
+
+        this.restClient = RestClient.builder()  // RestClient.builder()...설정 붙이기...build()
+                .baseUrl("https://generativelanguage.googleapis.com")
+                // .baseUrl(...) -- 기본 주소 지정
+                .requestFactory(requestFactory)
+                // .requestFactory(requestFactory) -- 위에서 시간 제한을 걸어둔 도구를 쓰라고 지정
+                .build();   // 완성
+
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
         this.model = model;

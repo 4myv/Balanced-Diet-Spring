@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -48,6 +49,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(503).body(new ErrorResponse("AI가 지금 바빠요. 잠시 후 다시 시도해주세요."));
         // 503 상태 코드를 알려주고, 안내 메시지 보내기
+        // 503 (Service Unavailable) -> 서버가 지금 이용 불가하다는 뜻
     }
 
     // 4. Gemini가 4xx를 보냈을 때 -> 503 (사용량 초과) / 500 (설정 문제)
@@ -55,6 +57,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGeminiClientError(HttpClientErrorException e) {
         if (e.getStatusCode().value() == 429) {
             log.warn("Gemini 사용량 초과 : {}", e.getStatusCode());
+            // 콘솔에 주의 수준으로 기록
+
             return ResponseEntity.status(503).body(new ErrorResponse("AI 요청이 몰려서 잠시 쉬고 있어요. 몇 분 뒤에 다시 시도해주세요."));
             // 503 상태 코드를 알려주고, 안내 메시지 보내기
         }
@@ -66,7 +70,18 @@ public class GlobalExceptionHandler {
         // 500 상태 코드를 알려주고, 안내 메시지 보내기
     }
 
-    // 5. 없는 주소나 파일을 요청했을 때 -> 404
+    // 5. Gemini 응답이 너무 늦거나 연결이 안 될 때 -> 504
+    @ExceptionHandler(ResourceAccessException.class)
+    public ResponseEntity<ErrorResponse> handleGeminiTimeout(ResourceAccessException e) {
+        log.warn("Gemini 연결 문제: {}", e.getMessage());
+        // 콘솔에 주의 수준으로 기록
+
+        return ResponseEntity.status(504).body(new ErrorResponse("AI 응답이 늦어지고 있어요. 잠시 후 다시 시도해주세요."));
+        // 504 상태 코드를 알려주고, 안내 메시지 보내기
+        // 504 (Gateway Timeout) -> 내가 대신 물어본 서버가 제때 답을 안 줬다는 뜻
+    }
+
+    // 6. 없는 주소나 파일을 요청했을 때 -> 404
     @ExceptionHandler(NoResourceFoundException.class)
     // Not Found 에러가 왔을 때 메서드 실행 (주소나 파일이 존재하지 않을 때)
     public ResponseEntity<ErrorResponse> handleNotFound(NoResourceFoundException e) {
@@ -74,7 +89,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(404).body(new ErrorResponse("요청한 주소를 찾을 수 없어요."));
     }
 
-    // 6. 찾는 데이터가 없을 때 -> 404
+    // 7. 찾는 데이터가 없을 때 -> 404
     @ExceptionHandler(NotFoundException.class)
     // Not Found 에러가 왔을 때 메서드 실행 (데이터가 존재하지 않을 때)
     public ResponseEntity<ErrorResponse> handleDataNotFound(NotFoundException e) {
@@ -82,10 +97,10 @@ public class GlobalExceptionHandler {
         // 404 상태 코드를 알려주고 안내 메시지 보내기
     }
 
-    // 7. 그 외 모든 에러 -> 500
+    // 8. 그 외 모든 에러 -> 500
     @ExceptionHandler(Exception.class)
     // Exception은 모든 에러의 부모이다
-    // 위 1~6에 해당하지 않는 에러는 모두 여기로 받아 처리한다
+    // 위 1~7에 해당하지 않는 에러는 모두 여기로 받아 처리한다
     public ResponseEntity<ErrorResponse> handleEtc(Exception e) {
         log.error("처리 중 에러 발생", e);
         // 콘솔에 에러 수준으로 기록, 뒤에 e를 넣어 에러 내용 전체가 콘솔에 찍힌다
