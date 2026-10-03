@@ -4,6 +4,7 @@ import com.balanceddiet.server.dto.AnalyzeRequest;
 import com.balanceddiet.server.dto.AnalyzeResponse;
 import com.balanceddiet.server.dto.GoalRequest;
 import com.balanceddiet.server.dto.GoalResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class GeminiService {
 
@@ -29,7 +31,7 @@ public class GeminiService {
                     "{\"calories\": 정수, \"carb\": 정수, \"protein\": 정수, \"fat\": 정수}";
 
     private static final Map<String, String> ACTIVITY_LABELS = Map.of(
-            "low", "낮음(주로 앉아서 생할)",
+            "low", "낮음(주로 앉아서 생활)",
             "mid", "보통(주 2~3회 운동)",
             "high", "높음(주 4회 이상 운동)"
     );
@@ -232,26 +234,52 @@ public class GeminiService {
     private String extractText(Map<String, Object> response) {
         // Map<String, Object> 로 선언 -> "이름표"를 통해 Object를 호출
         // Map에서 get("이름표")로 꺼낼 때 -> 값이 Object라서 캐스팅 필요
-        // List<Map<String, Object>> 로 선언 -> 인덱스를 통해 Map을 호츨
+        // List<Map<String, Object>> 로 선언 -> 인덱스를 통해 Map을 호출
         // List에서 get(번호)로 꺼낼 때 -> 값이 Map이라서 캐스팅 필요 없음
 
         List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
         // Object를 담은 "response"에서 List<Map<String, Object>>로 타입 캐스팅
+        if (candidates == null || candidates.isEmpty()) {
+            throw noAnswer(response);
+        }
+        // candidates가 비어있으면 noAnswer 메서드를 호출하고 에러를 돌려받아 던짐
 
         Map<String, Object> firstCandidate = candidates.get(0);
         // Map을 담은 "candidates"에서 캐스팅 없이 인덱스로 꺼냄
-
         Map<String, Object> content = (Map<String, Object>) firstCandidate.get("content");
         // Object를 담은 "firstCandidate"에서 Map<String, Object>로 타입 캐스팅
+        if (content == null) {
+            throw noAnswer(response);
+        }
+        // content가 비어있으면 noAnswer 메서드를 호출하고 에러를 돌려받아 던짐
 
         List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
         // Object를 담은 "content"에서 List<Map<String, Object>>로 타입 캐스팅
+        if (parts == null || parts.isEmpty()) {
+            throw noAnswer(response);
+        }
+        // parts가 비어있으면 noAnswer 메서드를 호출하고 에러를 돌려받아 던짐
 
-        Map<String, Object> firstpart = parts.get(0);
+        Map<String, Object> firstPart = parts.get(0);
         // Map을 담은 "parts"에서 캐스팅 없이 인덱스로 꺼냄
+        String text = (String) firstPart.get("text");
+        // Object를 담은 "firstPart"에서 이름이 "text"에 해당하는 것을 String으로 타입 캐스팅
+        if (text == null) {
+            throw noAnswer(response);
+        }
+        // text가 비어있으면 noAnswer 메서드를 호출하고 에러를 돌려받아 던짐
+        // 아니면 리턴
+        return text;
+    }
 
-        return (String) firstpart.get("text");
-        // Object를 담은 "firstpart"에서 이름이 "text"에 해당하는 것을
-        // String으로 타입 캐스팅해서 리턴함
+    // Gemini가 답을 만들지 못했을 때 던질 에러를 만들어서 돌려주는 메서드
+    private IllegalArgumentException noAnswer(Map<String, Object> response) {
+        // extractText에서 넘길 Map<String, Object> 형식의 데이터를 받아 response에 담음
+
+        log.warn("Gemini가 답을 만들지 못함: {}", response);
+        // log에 개발자가 볼 warn 문구와 response
+
+        return new IllegalArgumentException("AI가 이 내용을 분석하지 못했어요. 다른 사진이나 설명으로 다시 시도해주세요.");
+        // 클라이언트에게 보여주는 메시지
     }
 }
