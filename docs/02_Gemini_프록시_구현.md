@@ -1,10 +1,9 @@
 **이번 단계의 목표**
 
-**\[기존]**		브라우저(script.js에 API 키) -------------------> Gemini
-
-**\[변경]** 		브라우저 --> 내 Spring 서버(API 키 보관) --> Gemini
-
-
+```
+[기존]  브라우저(script.js에 API 키) ──────────────→ Gemini
+[변경]  브라우저 ──→ 내 Spring 서버(API 키 보관) ──→ Gemini
+```
 
 **IntelliJ에 환경변수 등록**
 

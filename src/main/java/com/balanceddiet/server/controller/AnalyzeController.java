@@ -25,7 +25,7 @@ public class AnalyzeController {
         // "text"가 이름이 같은 AnalyzeRequest의 text 필드로 들어감
 
         return geminiService.analyzeMeal(request);
-        // 클라이언트가 보낸 데이터가 답긴 request 객체를 파라미터로 담아서
+        // 클라이언트가 보낸 데이터가 담긴 request 객체를 파라미터로 담아서
         // GeminiService의 analyzeMeal() 메서드 실행한 값을 리턴함
         // @RestController 어노테이션 때문에 리턴 값이 페이지에 표시됨
     }
