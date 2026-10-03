@@ -4,6 +4,7 @@ import com.balanceddiet.server.domain.Meal;
 import com.balanceddiet.server.domain.MealRepository;
 import com.balanceddiet.server.dto.MealRequest;
 import com.balanceddiet.server.dto.WeeklyAverageResponse;
+import com.balanceddiet.server.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -56,8 +57,8 @@ public class MealService {
             mealRepository.deleteById(id);
             // Id에 해당하는 값을 지움
         } else {
-            // Id가 존재하지 않은 경우
-            throw new IllegalArgumentException("존재하지 않는 기록이에요");
+            // Id가 존재하지 않은 경우 -> NotFoundException을 만들어 던짐 -> 404
+            throw new NotFoundException("존재하지 않는 기록이에요");
         }
     }
 
