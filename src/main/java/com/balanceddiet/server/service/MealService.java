@@ -6,6 +6,7 @@ import com.balanceddiet.server.dto.MealRequest;
 import com.balanceddiet.server.dto.WeeklyAverageResponse;
 import com.balanceddiet.server.exception.NotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -23,6 +24,7 @@ public class MealService {
     }
 
     // 식단 저장
+    @Transactional  // 저장
     public Meal save(MealRequest request) {
         // 1. 값 검사
         if (request.getName() == null || request.getName().isBlank()) {
@@ -45,12 +47,14 @@ public class MealService {
     }
 
     // 날짜별 조회
+    @Transactional(readOnly = true)     // 읽기만 함
     public List<Meal> findByDate(LocalDate date) {
         return mealRepository.findByDate(date);
         // date와 같은 날짜에 기록된 식단 목록을 찾음
     }
 
     // 삭제
+    @Transactional  // (있는지 확인, 삭제) 묶음
     public void delete(Long id) {
         if (mealRepository.existsById(id)) {
             // Id값이 존재하는지 검사
@@ -63,6 +67,7 @@ public class MealService {
     }
 
     // 최근 7일 중 기록한 날 기준 하루 평균
+    @Transactional(readOnly = true)     // 읽기만 함
     public WeeklyAverageResponse getWeeklyAverage() {
         // 1. 기간 정하기
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));

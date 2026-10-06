@@ -4,6 +4,7 @@ import com.balanceddiet.server.domain.Profile;
 import com.balanceddiet.server.domain.ProfileRepository;
 import com.balanceddiet.server.dto.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class ProfileService {
     }
 
     // 저장된 Profile 꺼내기 - 없으면 null
+    @Transactional(readOnly = true)  // 읽기만 함
     public Profile find() {
         List<Profile> profiles = profileRepository.findAll();
         if (profiles.isEmpty()) {
@@ -30,6 +32,7 @@ public class ProfileService {
     }
 
     // 신체 정보 저장 - 없으면 새로 만들고, 있으면 업데이트
+    @Transactional  // (꺼내고, 고치고, 저장) 묶음
     public Profile saveBody(ProfileRequest request) {
 
         // 1. 값 검사
@@ -71,6 +74,7 @@ public class ProfileService {
     }
 
     // 목표 저장 - 신체 정보가 먼저 있어야 함
+    @Transactional  // (꺼내고, 고치고, 저장) 묶음
     public Profile saveGoal(GoalSaveRequest request) {
 
         // 1. Profile이 있는지 찾기
