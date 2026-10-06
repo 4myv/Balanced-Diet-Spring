@@ -100,7 +100,10 @@ public class ProfileService {
         // 3. 목표 채우기
         profile.updateGoal(request.getGoalType(), request.getCustomGoalText(), request.getCalories(), request.getCarb(), request.getProtein(), request.getFat());
 
-        // 4. 저장하고 돌려주기
-        return profileRepository.save(profile);
+//        4. 저장하고 돌려주기
+//        return profileRepository.save(profile);
+
+        // 4. 돌려주기 (save 없음 - 트랜잭션이 끝날 때 변경 감지로 UPDATE)
+        return profile;
     }
 }
