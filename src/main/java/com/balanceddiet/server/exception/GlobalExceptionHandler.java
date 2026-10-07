@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.net.SocketTimeoutException;
 
 @Slf4j  // log를 사용하여 콘솔에 기록을 남기기 위한 어노테이션
 @RestControllerAdvice   // 모든 Controller를 지켜보다가, 에러가 날아오면 대신 받아줌
@@ -70,15 +72,33 @@ public class GlobalExceptionHandler {
         // 500 상태 코드를 알려주고, 안내 메시지 보내기
     }
 
-    // 5. Gemini 응답이 너무 늦거나 연결이 안 될 때 -> 504
-    @ExceptionHandler(ResourceAccessException.class)
-    public ResponseEntity<ErrorResponse> handleGeminiTimeout(ResourceAccessException e) {
-        log.warn("Gemini 연결 문제: {}", e.getMessage());
-        // 콘솔에 주의 수준으로 기록
+    // 5. Gemini와 통신하다 생긴 문제 (시간 초과, 연결 실패, 응답 읽기 실패) -> 504 / 502
+    @ExceptionHandler(RestClientException.class)
+    public ResponseEntity<ErrorResponse> handleGeminiConnection(RestClientException e) {
+        if (isTimeout(e)) {
+            log.warn("Gemini 응답 시간 초과: {}", e.getMessage());
+            // 콘솔에 주의 수준으로 기록
+            return ResponseEntity.status(504).body(new ErrorResponse("AI 응답이 늦어지고 있어요. 잠시 후 다시 시도해주세요."));
+            // 504 상태 코드를 알려주고, 안내 메시지 보내기
+            // 504 (Gateway Timeout) -> 내가 대신 물어본 서버가 제때 답을 안 줬다는 뜻
+        }
 
-        return ResponseEntity.status(504).body(new ErrorResponse("AI 응답이 늦어지고 있어요. 잠시 후 다시 시도해주세요."));
-        // 504 상태 코드를 알려주고, 안내 메시지 보내기
-        // 504 (Gateway Timeout) -> 내가 대신 물어본 서버가 제때 답을 안 줬다는 뜻
+        log.error("Gemini 통신 오류", e);
+        // 콘솔에 에러 수준으로 기록
+        return ResponseEntity.status(502).body(new ErrorResponse("AI 응답을 받지 못했어요. 잠시 후 다시 시도해주세요."));
+        // 502 상태 코드를 알려주고, 안내 메시지 보내기
+        // 502 (Bad Gateway) -> 대신 물어본 서버로부터 제대로 된 답을 못 받음
+    }
+
+    // 에러 안쪽(원인)을 따라 들어가면서 시간 초과가 있는지 찾음
+    private boolean isTimeout(Throwable e) {
+        while (e != null) {
+            if (e instanceof SocketTimeoutException) {
+                return true;
+            }
+            e = e.getCause();
+        }
+        return false;
     }
 
     // 6. 없는 주소나 파일을 요청했을 때 -> 404
