@@ -439,9 +439,7 @@ document.getElementById("btn-reset-day").addEventListener("click", async () => {
     if (!confirm("오늘 기록한 식단을 모두 지울까요?")) return;
 
     try {
-        for (const meal of state.meals) {
             await callApi("DELETE", "/api/meals/" + meal.id);
-        }
     } catch (err) {
         showError("home-error", err.message);
     }
