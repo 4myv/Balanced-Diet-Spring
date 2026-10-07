@@ -64,4 +64,11 @@ public class MealController {
     public WeeklyAverageResponse getWeeklyAverage() {
         return mealService.getWeeklyAverage();
     }
+
+    // DELETE /api/meals?date=2026-10-07 - 해당 날자의 기록 전부 삭제
+    @DeleteMapping
+    public void deleteByDate(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        mealService.deleteByDate(date);
+    }
 }

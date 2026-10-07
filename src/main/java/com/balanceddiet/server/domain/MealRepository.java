@@ -16,4 +16,9 @@ public interface MealRepository extends JpaRepository<Meal, Long> {
     // 스프링이 메서드 이름을 읽고 DB 명령을 만들어줌
     // findByDateBetween -> find(찾아라) By(~로)
     // Date(date 필드) Between(start부터 end까지, 양 끝 포함)
+
+    void deleteByDate(LocalDate date);
+    // 스프링이 메서드 이름을 읽고 DB 명령을 만들어줌
+    // delete(지워라) By(~로) Date(date 필드)
+    // -> "date가 같은 행을 전부 지워라"
 }

@@ -105,4 +105,10 @@ public class MealService {
 
         return new WeeklyAverageResponse(days, avgCalories, avgCarb, avgProtein, avgFat);
     }
+
+    // 날짜별 전체 삭제 - 당일 기록을 일괄 삭제
+    @Transactional
+    public void deleteByDate(LocalDate date) {
+        mealRepository.deleteByDate(date);
+    }
 }
