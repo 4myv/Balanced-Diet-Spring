@@ -108,6 +108,25 @@ restClient.post()
 * 같이 사용하는 예시 -  try { 에러 코드} catch { throw new 에러종류("설명") }
 
 
+**@RestControllerAdvice — 모든 Controller가 함께 쓰는 catch**
+- Service에서 throw한 에러는 잡는 곳이 없으면 Controller를 지나 스프링까지 올라감
+- 없다면: 스프링이 500으로 응답하거나, Controller마다 같은 try-catch를 반복해야 함
+- 그래서 catch 부분만 떼어 한 클래스에 모아둔 것
+
+  |try-catch|@RestControllerAdvice|
+  |-|-|
+  |`catch (NotFoundException e) { ... }`|`@ExceptionHandler(NotFoundException.class)` 붙은 메서드|
+  |그 메서드 안에서만 동작|모든 Controller에서 동작|
+  |Controller마다 반복|한 번만 작성|
+
+- 동작 순서 (`DELETE /api/meals/999`)
+  1. Service가 `NotFoundException`을 던짐
+  2. Controller에 catch가 없으니 위로 올라감
+  3. 스프링이 `@RestControllerAdvice` 클래스에서 이 에러를 받는 `@ExceptionHandler`를 찾음
+  4. 그 메서드가 돌려준 `ResponseEntity`(404 + 메시지)를 응답으로 보냄
+- 이름: Controller들에 공통으로 적용할 규칙(Advice), 돌려주는 값은 JSON(Rest)
+- 결과: Controller에는 catch가 없고, 에러 응답 형식이 한 곳에서 통일됨
+
 
 **설계 원칙**
 
